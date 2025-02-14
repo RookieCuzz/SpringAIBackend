@@ -1,0 +1,21 @@
+server:
+  port: 16666
+spring:
+  application:
+    name: springaidemo
+  ai:
+    openai:
+      api-key: sk-Ocq3kyvNU2d3xjp0dPOlOzdTShoJaDj55Z55iWczw7kVrEVW
+      base-url: https://chatapi.littlewheat.com
+    vectorstore:
+      redis:
+        initialize-schema: true
+        index-name: custom-index
+        prefix: custom-prefix
+        batching-strategy: TOKEN_COUNT # Optional: Controls how documents are batched for embedding
+  data:
+    redis:
+#      uri: redis://yourpassword@107.172.217.25:6379
+      host: 107.172.217.25
+      port: 6379
+      password: yourpassword
