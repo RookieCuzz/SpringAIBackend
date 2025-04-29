@@ -1,0 +1,21 @@
+变量检测:
+  meta:
+    name: '变量检测'
+    type: 'PlaceholderAPI'
+  task:
+    '0':
+      objective: placeholder api
+      goal:
+        # 检测的变量
+        key: "%aboe_金币%"
+
+        # 需要达到的值
+        value: "1000"
+
+        # 需要完成检测的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6变量检测 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6变量检测 - 已完成" by 10 20 10

@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>配置面板</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+            background-color: dimgray;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 600px;
+            text-align: left;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .close {
+            float: right;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            box-sizing: border-box;
+        }
+        .role-list {
+            margin-top: 30px;
+            text-align: left;
+            background-color: #dddddd;
+        }
+        .role-list table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .role-list th, .role-list td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .role-list th {
+            background-color: #f2f2f2;
+        }
+        .tech-title {
+            font-family: 'Arial', sans-serif; /* 使用现代字体 */
+            font-size: 2.5em; /* 增大字体大小 */
+            font-weight: bold; /* 加粗字体 */
+            background: linear-gradient(1deg, #f2f2f2,#007bff, darkseagreen); /* 简朴的灰色渐变背景 */
+            -webkit-background-clip: text; /* 文字颜色使用渐变背景 */
+            color: transparent; /* 文字颜色透明，显示渐变背景 */
+            text-align: center; /* 居中对齐 */
+            margin: 20px auto; /* 上下外边距为20px，左右外边距自动居中 */
+            width: 40%;
+            padding: 10px; /* 增加内边距 */
+            border: 2px solid #444; /* 添加深灰色边框 */
+            border-radius: 10px; /* 圆角边框 */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); /* 深灰色阴影效果 */
+            animation: glow 2s infinite; /* 添加发光动画 */
+        }
+
+        @keyframes glow {
+            0%, 100% {
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            }
+            50% {
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+            }
+        }
+    </style>
+</head>
+<body>
+
+<h1 class="tech-title">配置面板</h1>
+<button id="openModal">添加人设</button>
+<button id="viewRoles">查看所有人设</button>
+<button id="openKnowledgeModal">添加知识库</button>
+
+<!-- 模态框 -->
+<div id="modal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="closeModal">&times;</span>
+        <h2>添加人设</h2>
+        <label for="roleName">人设名称：</label>
+        <input type="text" id="roleName" required>
+
+        <label for="roleDesc">人设描述：</label>
+        <textarea id="roleDesc" rows="10" required></textarea>
+
+        <button id="submitRole">提交</button>
+    </div>
+</div>
+<!-- 知识库模态框 -->
+<div id="knowledgeModal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="closeKnowledgeModal">&times;</span>
+        <h2>添加知识库</h2>
+        <label for="knowledgeName">知识库名称：</label>
+        <input type="text" id="knowledgeName" required>
+
+        <label for="knowledgeContent">知识库内容：</label>
+        <textarea id="knowledgeContent" rows="10" required></textarea>
+
+        <button id="submitKnowledge">提交</button>
+    </div>
+</div>
+<!-- 新增按钮 -->
+<button id="viewDocuments">查看所有知识库</button>
+
+<!-- 知识库表格容器 -->
+<div id="documentList" class="role-list" style="display: none;">
+    <h2>所有知识库文档</h2>
+    <table id="documentTable">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>文档名称</th>
+            <th>文档内容</th>
+            <th>创建时间</th>
+            <th>更新时间</th>
+        </tr>
+        </thead>
+        <tbody>
+        <!-- 动态添加的文档列表项 -->
+        </tbody>
+    </table>
+</div>
+
+<!-- 人设表格容器 -->
+<div id="roleList" class="role-list" style="display: none;">
+    <h2>已有的人设</h2>
+    <table id="roleTable">
+        <thead>
+        <tr>
+            <th>人设名称</th>
+            <th>人设描述</th>
+            <th>创建时间</th>
+            <th>更新时间</th>
+        </tr>
+        </thead>
+        <tbody>
+        <!-- 动态添加的人设列表项 -->
+        </tbody>
+    </table>
+</div>
+
+
+<script>
+
+    // 获取元素
+    var viewDocumentsBtn = document.getElementById("viewDocuments");
+    var documentListDiv = document.getElementById("documentList");
+    var documentTableBody = document.getElementById("documentTable").getElementsByTagName('tbody')[0];
+
+    // 查询所有知识库文档并渲染表格
+    function queryAllDocuments() {
+        axios.get('http://127.1.0.1:16666/config/getAllDocument')
+            .then(response => {
+                var documents = response.data.data;
+                documentTableBody.innerHTML = '';  // 清空现有表格内容
+
+                if (documents && documents.length > 0) {
+                    documents.forEach(function(doc) {
+                        var row = document.createElement("tr");
+
+                        // 添加 ID 单元格
+                        var idCell = document.createElement("td");
+                        idCell.textContent = doc.id;
+                        row.appendChild(idCell);
+
+                        // 添加文档名称单元格（包含删除按钮）
+                        var nameCell = document.createElement("td");
+                        nameCell.textContent = doc.name;
+
+                        // 创建删除按钮
+                        var deleteButton = document.createElement("button");
+                        deleteButton.textContent = "删除";
+                        deleteButton.className = "delete-btn";
+                        deleteButton.onclick = function () {
+                            deleteDocument(doc.name); // 调用删除函数
+                        };
+                        nameCell.appendChild(deleteButton); // 将删除按钮添加到文档名称单元格
+                        row.appendChild(nameCell);
+
+                        // 添加文档内容单元格
+                        var contentCell = document.createElement("td");
+                        contentCell.textContent = doc.content;
+                        row.appendChild(contentCell);
+
+                        // 添加创建时间单元格
+                        var createTimeCell = document.createElement("td");
+                        createTimeCell.textContent = doc.createTime ? new Date(doc.createTime).toLocaleString() : '未设置';
+                        row.appendChild(createTimeCell);
+
+                        // 添加更新时间单元格
+                        var updateTimeCell = document.createElement("td");
+                        updateTimeCell.textContent = doc.updateTime ? new Date(doc.updateTime).toLocaleString() : '未设置';
+                        row.appendChild(updateTimeCell);
+
+                        // 将行添加到表格主体
+                        documentTableBody.appendChild(row);
+                    });
+                } else {
+                    var row = document.createElement("tr");
+                    var cell = document.createElement("td");
+                    cell.colSpan = 5; // 包括所有列
+                    cell.textContent = '暂无知识库文档。';
+                    row.appendChild(cell);
+                    documentTableBody.appendChild(row);
+                }
+
+                documentListDiv.style.display = 'block';  // 显示知识库列表
+            })
+            .catch(error => {
+                alert("获取知识库文档失败：" + error);
+            });
+    }
+
+    // 删除文档的函数
+    function deleteDocument(name) {
+        axios.delete(`http://127.1.0.1:16666/config/deleteDocument?name=${encodeURIComponent(name)}`)
+            .then(response => {
+                if (response.data.success) {
+                    alert(`文档 "${name}" 已成功删除`);
+
+                } else {
+                    alert(`删除失败：${response.data.message}`);
+                }
+                queryAllDocuments(); // 刷新文档列表
+            })
+            .catch(error => {
+                alert(`删除文档失败：${error}`);
+            });
+    }
+
+    // 绑定按钮点击事件
+    viewDocumentsBtn.onclick = queryAllDocuments;
+    // 获取元素
+    var modal = document.getElementById("modal");
+    var openModalBtn = document.getElementById("openModal");
+    var closeModalBtn = document.getElementById("closeModal");
+    var submitBtn = document.getElementById("submitRole");
+    var viewRolesBtn = document.getElementById("viewRoles");
+    var roleListDiv = document.getElementById("roleList");
+    var roleListUl = document.getElementById("roleListUl");
+
+    // 打开模态框
+    openModalBtn.onclick = function() {
+        modal.style.display = "flex";
+    };
+
+    // 关闭模态框
+    closeModalBtn.onclick = function() {
+        modal.style.display = "none";
+    };
+
+    // 提交数据
+    submitBtn.onclick = function() {
+        var roleName = document.getElementById("roleName").value.trim();
+        var roleDesc = document.getElementById("roleDesc").value.trim();
+
+        if (roleName && roleDesc) {
+            axios.post('http://127.1.0.1:16666/config/addRole', {
+                name: roleName,
+                description: roleDesc
+            }).then(response => {
+                alert("人设添加成功！");
+                modal.style.display = "none";
+                document.getElementById("roleName").value = '';
+                document.getElementById("roleDesc").value = '';
+                queryAllRoles();
+            }).catch(error => {
+                alert("提交失败：" + error);
+            });
+        } else {
+            alert("请填写完整信息！");
+        }
+    };
+
+    // 点击模态框外部区域关闭弹窗
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    };
+
+    // 查看人设信息
+    // 获取元素
+    var roleListDiv = document.getElementById("roleList");
+    var roleTableBody = document.getElementById("roleTable").getElementsByTagName('tbody')[0];
+
+    // 查询所有人物并动态渲染到表格
+    function queryAllRoles() {
+        axios.get('http://127.1.0.1:16666/config/getAllRoles')  // 假设这是查询人物信息的接口
+            .then(response => {
+                var roles = response.data.data;
+                roleTableBody.innerHTML = '';  // 清空现有表格内容
+                if (roles && roles.length > 0) {
+                    roles.forEach(function(role) {
+                        var row = document.createElement("tr");
+
+                        var nameCell = document.createElement("td");
+                        nameCell.textContent = role.name;
+                        row.appendChild(nameCell);
+
+                        // 创建删除按钮
+                        var deleteButton = document.createElement("button");
+                        deleteButton.textContent = "删除";
+                        deleteButton.className = "delete-btn";  // 可为按钮添加自定义样式
+                        deleteButton.onclick = function() {
+                            deleteRole(role.name);  // 点击按钮时调用删除人物函数
+                        };
+                        nameCell.appendChild(deleteButton);  // 将删除按钮添加到“人物名称”单元格
+
+                        var descriptionCell = document.createElement("td");
+                        descriptionCell.textContent = role.description;
+                        row.appendChild(descriptionCell);
+
+                        var createTimeCell = document.createElement("td");
+                        createTimeCell.textContent = role.createTime ? new Date(role.createTime).toLocaleString() : '未设置';
+                        row.appendChild(createTimeCell);
+
+                        var updateTimeCell = document.createElement("td");
+                        updateTimeCell.textContent = role.updateTime ? new Date(role.updateTime).toLocaleString() : '未设置';
+                        row.appendChild(updateTimeCell);
+
+                        roleTableBody.appendChild(row);  // 将每一行添加到表格主体
+                    });
+                } else {
+                    var row = document.createElement("tr");
+                    var cell = document.createElement("td");
+                    cell.colSpan = 4;
+                    cell.textContent = '暂无人物信息。';
+                    row.appendChild(cell);
+                    roleTableBody.appendChild(row);
+                }
+                roleListDiv.style.display = 'block';  // 显示人物列表
+            })
+            .catch(error => {
+                alert("获取人物列表失败：" + error);
+            });
+    }
+    function clearTable() {
+        roleTableBody.innerHTML = '';  // 清空现有表格内容
+    }
+    // 删除人物的函数
+    function deleteRole(roleName) {
+        axios.delete('http://127.1.0.1:16666/config/DeleteRole?name=' + encodeURIComponent(roleName))
+            .then(response => {
+                if (response.data.success) {
+
+                    alert('人物 "' + roleName + '" 已成功删除');
+
+                } else {
+                    alert('删除失败：' + response.data.message);
+                }
+                queryAllRoles();  // 删除成功后重新加载人物列表
+            })
+            .catch(error => {
+                alert("删除人物失败：" + error);
+            });
+
+    }
+
+    // 查询人物按钮点击事件
+    viewRolesBtn.onclick = queryAllRoles;
+
+
+    // 查看人设信息
+    viewRolesBtn.onclick = queryAllRoles;
+
+
+    // 获取元素
+    var openKnowledgeModalBtn = document.getElementById("openKnowledgeModal");
+    var closeKnowledgeModalBtn = document.getElementById("closeKnowledgeModal");
+    var submitKnowledgeBtn = document.getElementById("submitKnowledge");
+    var knowledgeModal = document.getElementById("knowledgeModal");
+
+    // 打开知识库模态框
+    openKnowledgeModalBtn.onclick = function() {
+        knowledgeModal.style.display = "flex";
+    };
+
+    // 关闭知识库模态框
+    closeKnowledgeModalBtn.onclick = function() {
+        knowledgeModal.style.display = "none";
+    };
+
+    // 提交知识库数据
+    submitKnowledgeBtn.onclick = function() {
+        var knowledgeName = document.getElementById("knowledgeName").value.trim();
+        var knowledgeContent = document.getElementById("knowledgeContent").value.trim();
+
+        if (knowledgeName && knowledgeContent) {
+            axios.post('http://127.1.0.1:16666/config/addDocument', {
+                name: knowledgeName,
+                content: knowledgeContent
+            }).then(response => {
+                alert("知识库添加成功！");
+                knowledgeModal.style.display = "none";  // 关闭模态框
+                document.getElementById("knowledgeName").value = '';  // 清空输入框
+                document.getElementById("knowledgeContent").value = '';  // 清空内容框
+            }).catch(error => {
+                alert("提交失败：" + error);
+            });
+        } else {
+            alert("请填写完整信息！");
+        }
+    };
+
+    // 点击模态框外部区域关闭弹窗
+    window.onclick = function(event) {
+        if (event.target == knowledgeModal) {
+            knowledgeModal.style.display = "none";
+        }
+    };
+    // 清空表格内容
+    function clearTable(tableId) {
+        document.getElementById(tableId).getElementsByTagName('tbody')[0].innerHTML = '';
+    }
+
+    // 在切换时调用
+    document.getElementById("viewDocuments").onclick = function () {
+        clearTable("roleTable"); // 清空人设表格
+        document.getElementById("roleList").style.display = "none";
+        document.getElementById("documentList").style.display = "block";
+        queryAllDocuments();
+    };
+
+    document.getElementById("viewRoles").onclick = function () {
+        clearTable("documentTable"); // 清空知识库表格
+        document.getElementById("documentList").style.display = "none";
+        document.getElementById("roleList").style.display = "block";
+        queryAllRoles();
+    };
+
+
+</script>
+
+</body>
+</html>

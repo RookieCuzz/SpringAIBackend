@@ -1,17 +1,27 @@
 server:
   port: 16666
 spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+      location: E:/springaidemo
   application:
     name: springaidemo
   ai:
     openai:
-      api-key: sk-Ocq3kyvNU2d3xjp0dPOlOzdTShoJaDj55Z55iWczw7kVrEVW
+      api-key: sk-tUYWHdgOWNcmWQkJsbluKbDgJTV3BuNNhskvZnPZwmJNEG0D
       base-url: https://chatapi.littlewheat.com
+      chat:
+        options:
+          model: deepseek-chat
+    #      api-key: sk-ODEEi8mL95HQdmN40uglPBpJ3axn9YbBZ3hVQMQTuVGhLEYZ
+#      base-url: https://api.lkeap.cloud.tencent.com/v1
     vectorstore:
       redis:
         initialize-schema: true
         index-name: custom-index
-        prefix: custom-prefix
+        prefix: vector_
         batching-strategy: TOKEN_COUNT # Optional: Controls how documents are batched for embedding
   data:
     redis:
@@ -19,3 +29,28 @@ spring:
       host: 107.172.217.25
       port: 6379
       password: yourpassword
+      connect-timeout: 600000
+  datasource:
+    mysql:
+      url: jdbc:mysql://8.138.106.163:3306/electric_dispatch
+      username: root
+      password: loveyou
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      hikari:
+        maximum-pool-size: 10
+        minimum-idle: 5
+        idle-timeout: 100000        # 10分钟
+        max-lifetime: 100000       # 30分钟
+        connection-timeout: 30000   # 30秒
+        validation-timeout: 3000    # 3秒
+        connection-test-query: SELECT 1 # 用于检测连接是否有效
+        test-while-idle: true       # 在空闲时验证连接的有效性
+        time-between-eviction-runs-millis: 60000  # 每60秒检查一次空闲连接
+        min-evictable-idle-time-millis: 300000   # 5分钟后才会被清理
+      debug: false
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  #生成的model的路径
+  type-aliases-package: com.cuzz.webac.model.doo
+
+centerWsURL: "ws://103.205.253.165:28088/web?key=botpwd&client=*ai"

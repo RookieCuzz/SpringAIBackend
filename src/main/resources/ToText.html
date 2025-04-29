@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>从 .docx 文件读取内容</title>
+    <script src="https://cdn.jsdelivr.net/npm/docx@9.1.1/dist/index.iife.min.js"></script>
+</head>
+<body>
+<h1>选择 .docx 文件并读取内容</h1>
+<input type="file" id="fileInput" accept=".docx" />
+<button id="readFileButton">读取文件</button>
+<p id="output"></p>
+
+<script>
+    document.getElementById('readFileButton').addEventListener('click', function () {
+        const fileInput = document.getElementById('fileInput');
+        const file = fileInput.files[0];
+        const output = document.getElementById('output');
+
+        if (!file) {
+            output.textContent = "请先选择一个文件！";
+            return;
+        }
+
+        const reader = new FileReader();
+
+        reader.onload = function (event) {
+            const arrayBuffer = event.target.result;
+
+            // 使用 docx 库解析 Word 文件
+            const doc = new docx.Document().re;
+            const content = doc.text();
+
+            console.log(content); // 输出到控制台
+            output.textContent = "文件内容已输出到控制台。";
+        };
+
+        reader.onerror = function (error) {
+            console.error("文件读取失败：", error);
+            output.textContent = "文件读取失败。";
+        };
+
+        reader.readAsArrayBuffer(file); // 读取为 ArrayBuffer
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人设记录系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            text-align: center;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 600px;
+            text-align: left;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .close {
+            float: right;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            box-sizing: border-box;
+        }
+        .role-list {
+            margin-top: 30px;
+            text-align: left;
+        }
+        .role-list table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .role-list th, .role-list td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .role-list th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+
+<h1>人设记录系统</h1>
+<button id="openModal">添加人设</button>
+<button id="viewRoles">查看人设</button>
+
+<!-- 模态框 -->
+<div id="modal" class="modal">
+    <div class="modal-content">
+        <span class="close" id="closeModal">&times;</span>
+        <h2>添加人设</h2>
+        <label for="roleName">人设名称：</label>
+        <input type="text" id="roleName" required>
+
+        <label for="roleDesc">人设描述：</label>
+        <textarea id="roleDesc" rows="10" required></textarea>
+
+        <button id="submitRole">提交</button>
+    </div>
+</div>
+
+<!-- 显示人设列表的容器 -->
+<div id="roleList" class="role-list" style="display: none;">
+    <h2>已有的人设</h2>
+    <table id="roleTable">
+        <thead>
+        <tr>
+            <th>人设名称</th>
+            <th>人设描述</th>
+            <th>创建时间</th>
+            <th>更新时间</th>
+        </tr>
+        </thead>
+        <tbody>
+        <!-- 动态添加的角色列表项 -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // 获取元素
+    var modal = document.getElementById("modal");
+    var openModalBtn = document.getElementById("openModal");
+    var closeModalBtn = document.getElementById("closeModal");
+    var submitBtn = document.getElementById("submitRole");
+    var viewRolesBtn = document.getElementById("viewRoles");
+
+    // 打开模态框
+    openModalBtn.onclick = function() {
+        modal.style.display = "flex";
+    };
+
+    // 关闭模态框
+    closeModalBtn.onclick = function() {
+        modal.style.display = "none";
+    };
+
+    // 提交数据
+    submitBtn.onclick = function() {
+        var roleName = document.getElementById("roleName").value.trim();
+        var roleDesc = document.getElementById("roleDesc").value.trim();
+
+        if (roleName && roleDesc) {
+            axios.post('http://127.1.0.1:16666/config/addRole', {
+                name: roleName,
+                description: roleDesc
+            }).then(response => {
+                alert("人设添加成功！");
+                modal.style.display = "none";
+                document.getElementById("roleName").value = '';
+                document.getElementById("roleDesc").value = '';
+            }).catch(error => {
+                alert("提交失败：" + error);
+            });
+        } else {
+            alert("请填写完整信息！");
+        }
+    };
+
+    // 点击模态框外部区域关闭弹窗
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    };
+
+    // 查看人设信息
+    // 获取元素
+    var roleListDiv = document.getElementById("roleList");
+    var roleTableBody = document.getElementById("roleTable").getElementsByTagName('tbody')[0];
+
+    // 查看人设信息
+    viewRolesBtn.onclick = function() {
+        axios.get('http://127.1.0.1:16666/config/getRoles')  // 假设这是查询人设信息的接口
+            .then(response => {
+                var roles = response.data.data;
+                roleTableBody.innerHTML = '';  // 清空现有表格内容
+                if (roles && roles.length > 0) {
+                    roles.forEach(function(role) {
+                        var row = document.createElement("tr");
+
+                        var nameCell = document.createElement("td");
+                        nameCell.textContent = role.name;
+                        row.appendChild(nameCell);
+
+                        var descriptionCell = document.createElement("td");
+                        descriptionCell.textContent = role.description;
+                        row.appendChild(descriptionCell);
+
+                        var createTimeCell = document.createElement("td");
+                        createTimeCell.textContent = role.createTime ? new Date(role.createTime).toLocaleString() : '未设置';
+                        row.appendChild(createTimeCell);
+
+                        var updateTimeCell = document.createElement("td");
+                        updateTimeCell.textContent = role.updateTime ? new Date(role.updateTime).toLocaleString() : '未设置';
+                        row.appendChild(updateTimeCell);
+
+                        roleTableBody.appendChild(row);
+                    });
+                } else {
+                    var row = document.createElement("tr");
+                    var cell = document.createElement("td");
+                    cell.colSpan = 4;
+                    cell.textContent = '暂无人设信息。';
+                    row.appendChild(cell);
+                    roleTableBody.appendChild(row);
+                }
+                roleListDiv.style.display = 'block';  // 显示人设列表
+            })
+            .catch(error => {
+                alert("获取人设列表失败：" + error);
+            });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>提交表单并上传文件</title>
+</head>
+<body>
+<h1>提交表单并上传文件</h1>
+<form id="uploadForm" enctype="multipart/form-data">
+  <label for="name">名字：</label>
+  <input type="text" id="name" name="name" required><br><br>
+
+  <label for="file">选择文件：</label>
+  <input type="file" id="file" name="file" required><br><br>
+
+  <button type="button" id="submitBtn">提交表单</button>
+</form>
+<p id="output"></p>
+
+<script>
+  document.getElementById('submitBtn').addEventListener('click', function () {
+    const form = document.getElementById('uploadForm');
+    const output = document.getElementById('output');
+
+    // 创建 FormData 对象
+    const formData = new FormData(form);
+
+    // 使用 fetch API 提交表单
+    fetch('http://127.1.0.1:16666/config/addDocumentWithFile@', {
+      method: 'POST',
+      body: formData
+    })
+            .then(response => response.json())
+            .then(data => {
+              output.textContent = "文件上传成功！服务器返回：" + JSON.stringify(data);
+            })
+            .catch(error => {
+              console.error("文件上传失败：", error);
+              output.textContent = "文件上传失败。";
+            });
+  });
+</script>
+</body>
+</html>

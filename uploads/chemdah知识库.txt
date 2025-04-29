@@ -1,0 +1,4264 @@
+Q & A
+Q: 如何实现新玩家自动接取某个任务?
+A: 自动接受(~/任务进阶/自动化/自动接受)
+Q: 当任务包含多个条目(task)时,如何实现 满足前置条目 后才可完成其余条目?
+A: 依赖(~/任务进阶/依赖/depend task - 条目依赖)
+
+/Chemdah
+● api
+  ○ createscenes <玩家> <场景> <索引> - 创建场景(Chemdah/module/scenes.yml)
+  ○ cancelscenes <玩家> <场景> <索引> - 取消已创建的场景
+  ○ conversation
+    ■ npc <玩家> <对话id> look - 以NPC视角为玩家开启指定对话
+    ■ self <玩家> <对话id> <名称> - 以玩家视角开启指定对话(同时传入名称变量)
+  ○ generate <名称> [<数量>] - 选择类型以生成名称
+  ○ blockinfo - 返回准星对准方块的材质数据
+  ○ position(pos)
+    ■ self - 返回自身坐标信息
+    ■ target - 返回准星对准目标的坐标信息
+  ○ wizard info <引导> - 查看指定引导
+● data
+  ○ set <玩家> <数据名> <数据值> - 设置目标玩家的指定数据为指定值
+  ○ add <玩家> <数据名> <数据值> - 使目标玩家的指定数据增加指定值
+  ○ remove <玩家> <数据名> - 清除目标玩家的指定数据
+  ○ clear <玩家> - 清除目标玩家的所有数据
+● level
+  ○ addLevel <玩家> <等级名> <值> - 为指定玩家增加指定等级的指定值
+  ○ setLevel <玩家> <等级名> <值> - 为指定玩家的指定等级设置指定值
+  ○ addexp <玩家> <等级名> <值> - 为指定玩家增加指定等级的指定经验值
+  ○ setexp <玩家> <等级名> <值> - 为指定玩家的指定等级设置指定经验值
+● quest
+  ○ accept <玩家> <任务> - 为指定玩家接受指定任务
+  ○ failure <玩家> <任务> - 强制失败指定玩家的指定任务
+  ○ complete <玩家> <任务> - 强制完成指定玩家的指定任务
+  ○ restart <玩家> <任务> - 强制重新开始指定玩家的指定任务
+  ○ stop <玩家> <任务> - 强制停止指定玩家的指定任务
+  ○ trigger <玩家> <值>- 呼出触发指定玩家的Trigger任务(<值>)
+  ○ triggerAll <值> - 呼出触发所有玩家的Trigger任务(<值>)
+  ○ info <玩家> [<任务>] - 查看指定玩家的(任务)信息
+  ○ ui <玩家> <UI> - 为指定玩家打开指定UI
+  ○ track <玩家>
+    ■ <任务> - 追踪指定玩家的指定任务
+    ■ cancel <任务> - 取消追踪指定玩家的指定任务
+● script
+  ○ run <脚本文件> [<执行者>] [<参数>] - 运行脚本文件
+  ○ stop [<脚本文件>] - 暂停脚本运行
+  ○ list - 列出脚本文件
+  ○ reload - 重载脚本文件
+  ○ debug - 开启调试模式
+  ○ invoke <Kether脚本> - 解析Kether脚本并返回解析结果
+  ○ invoke-now <Kether脚本> - 解析Kether脚本并实时返回解析结果
+  ○ invoke-wait <Kether脚本> - 解析Kether脚本并在执行结束后返回解析结果
+● variable
+  ○ get <变量名> - 获取指定变量
+  ○ set <变量名> <变量值> - 给指定变量设置指定值
+  ○ add <变量名> <变量值> - 给指定变量增加指定值
+  ○ remove <变量名> - 移除变量
+  ○ list - 查看变量列表
+● info <玩家> [<页码>] - 查看指定玩家的数据
+● mirror - 调用镜像系统(已禁用)
+● reload - 重载插件
+
+修改或获取玩家的变量。
+玩家变量帮助详见 Chemdah 文档。
+
+在获取语法后使用 default 语句可在数据不存在时返回默认值，在追加（add）语句后使用 default 语句可在数据不存在时以该数据为基础进行追加（add）行为。
+
+profile data {action} [(add|to) {action}] [default {action}]
+profile data keys
+
+profile data key
+profile data key default 10
+profile data key to 10
+profile data key add 1
+profile data key add 1 default 10
+profile data keys
+由 Chemdah 提供的公有动作
+Profile Data 的剖析
+通过上述语句示例，从中可以了解到 profile data  是用来对玩家变量进行增删改查的。
+语句格式为：profile data {action} [(add|to) {action}] [default {action}]
+其中 profile data 作为语句标识符，而 {action} 指代的是动作部分，意味着此处可以填入Kether语句。
+而此处会将填入的Kether语句视作独立的语句去解析，当获取到这部分的返回值时，再传回给语句标识符使用。
+此处不再赘述 {action} 部分的知识内容，详情请查看 Kether 烹饪食用指南。
+
+对变量进行查询的方法是极其方便且直接的：
+profile data key
+
+此Kether语句会将名为 key 的变量数据直接返回给玩家。
+后续的 [(add|to) {action}] 部分则用于对玩家变量数据进行操作；
+例如语句示例中展示的两条语句：
+profile data key to 10
+profile data key add 1
+
+此处将上述两条示例记为语句Ⅰ与语句Ⅱ。
+语句Ⅰ的作用，是对名为 key 的变量数据进行操作，将其值变更为 10。
+语句Ⅱ的作用，是对名为 key 的变量数据进行操作，使其值自增 1 。
+此处名为 key 的变量数据，在合法的条件下，可以是任意值，如：
+profile data 临时数据 to 10
+profile data 持久数据 add 1
+
+然而 default 部分也是常用的一环，在Kether动作列表中，已为读者列举出其作用。
+
+”在获取语法后使用 default 语句可在数据不存在时返回默认值，在追加（add）语句后使用 default 语句可在数据不存在时以该数据为基础进行追加（add）行为。“
+
+值得一提的是，default 部分也可以传入来自Kether语句的返回值。
+Profile Data 的应用场景
+profile data作为Chemdah自带的变量操作语句，在对话、任务两大部分是极为方便且实用的。
+其不仅可作为用于判断的条件，同时也可以作为数据以控制玩家的对话及任务流程。
+__option__:
+  theme: 'chat'
+  title: '测试对话'
+
+global-flags:
+  - LOOK_PLATER
+  - NO_MOVE
+
+测试对话-0:
+  npc id: 'adyeshach 测试对话'
+  when:
+    - if: check profile data *测试对话 == null
+      open: 测试对话-1
+    - if: check profile data *测试对话 != null
+      open: 测试对话-2
+
+上述是用profile data语句进行判断的一个实例，用于控制玩家该与Adyeshach插件提供的NPC的进行哪一个对话。
+重要提示：当使用profile data进行对话判断时，请在恰当的位置使用profile data语句对变量数据进行修改，以保证判断不会重复进行或导致流程重复。
+profile data 也常适用于任务代理中，尤其是任务完成时的代理动作。
+# 该任务可由:
+# 指令"/chemdah data set %player_name% 数据名 数据值"更改以完成
+# Kether语句"profile data 数据名 to 数据值"更改以完成
+玩家数据:
+  meta:
+    name: '玩家数据'
+    type: 'Chemdah'
+  task:
+    '0':
+      objective: 'player data'
+      goal:
+        # kether条件代理
+        # $: check profile data test > 5
+
+        # 数据名
+        key: 'test'
+
+        # 数据值
+        value: 3
+
+        # 完成次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家数据 - 已接受" by 10 20 10
+    completed: |
+			profile data test to 4
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家数据 - 已完成" by 10 20 10
+
+该任务中agent-completed下的profile data语句便是上述提及的情况。
+
+左键NPC:
+  meta:
+    name: '左键NPC'
+    type: 'Adyeshach'
+  task:
+    '0':
+      objective: 'anpc damage'
+      condition:
+        # Adyeshach NPC 内部ID
+        id: 'WIKI示例'
+
+        # Adyeshach NPC 类型
+        type: 'PLAYER'
+
+        # 左键 NPC 时手持(主副手)的 物品
+        # item: 'minecraft:bread' # 判断材质
+        # item: '*[name=测试Name]' # 判断名称
+        # item: '*[lore=测试Lore]' # 判断LORE
+
+        # 左键 NPC 时 NPC所在位置
+        # position: '世界名 x y z ~ 距离界限'
+        # position: 'world 10 65 -14 ~ 1'
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6左键NPC - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6左键NPC - 已完成" by 10 20 10
+右键NPC:
+  meta:
+    name: '右键NPC'
+    type: 'Adyeshach'
+  task:
+    '0':
+      objective: 'anpc interact'
+      condition:
+        # Adyeshach NPC 内部ID
+        id: 'WIKI示例'
+
+        # Adyeshach NPC 类型
+        type: 'PLAYER'
+
+        # 右键 NPC 时手持(主副手)的 物品
+        # item: 'minecraft:bread' # 判断材质
+        # item: '*[name=测试Name]' # 判断名称
+        # item: '*[lore=测试Lore]' # 判断LORE
+
+        # 用于搭配 "item" 判断主副手
+        # hand: 'mainhand' # 主手
+        # hand: 'offhand' # 副手
+
+        # 右键 NPC 时 NPC所在位置
+        # position: '世界名 x y z ~ 距离界限'
+        # position: 'world 10 65 -14 ~ 5'
+
+        # 实体 被 交互 时的 位置
+        # position:clicked: ''
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6右键NPC - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6右键NPC - 已完成" by 10 20 10
+进入床第:
+  meta:
+    name: '进入床第'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'bed enter'
+      condition:
+        # 进入床第 时 床 的材质
+        # bed: 'gray_bed'
+
+        # 进入床第 时 的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 进入床第 的 结果类型
+        # 结果类型:
+        # https://bukkit.windit.net/javadoc/org/bukkit/event/player/PlayerBedEnterEvent.BedEnterResult.html
+        # NOT_POSSIBLE_HERE 在当前世界中无法睡觉或保存重生点(例如地狱,末地或自定义世界).
+        # NOT_POSSIBLE_NOW 当前不是夜晚也没有雷雨.
+        # NOT_SAFE 当前床附近有怪物.
+        # OK 玩家会进入床.
+        # OTHER_PROBLEM 进入床被阻止，因为存在其他问题.
+        # TOO_FAR_AWAY 入床被阻止，因为玩家距离床太远.
+        # reason: 'OK'
+      goal:
+        # 需要进入床第的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6进入床第 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6进入床第 - 已完成" by 10 20 10
+离开床第:
+  meta:
+    name: '离开床第'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'bed leave'
+      condition:
+        # 离开床第 时 床 的材质
+        # bed: 'gray_bed'
+
+        # 离开床第 时 的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+      goal:
+        # 需要离开床第的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6离开床第 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6离开床第 - 已完成" by 10 20 10
+破坏方块:
+  meta:
+    name: '破坏方块'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'block break'
+      condition:
+        # 被破坏方块 的 材质
+        # material: ''
+        material: 'diamond_ore'
+
+        # 被破坏方块 的 所在位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -20 -60 -234 ~ 5'
+
+        # 是否计算 精准采集 附魔下破坏的数量
+        # no-silk-touch: false # 不计算 精准采集 附魔下破坏的数量
+        # no-silk-touch: true # 计算 精准采集 附魔下破坏的数量
+
+        # 是否计算 玩家放置 的 目标被破坏方块
+        # unique: true # 不计算 玩家放置 的 目标被破坏方块
+        # unique: false # 同时计算 玩家放置 的 目标被破坏方块
+
+        # 破坏方块 时 需要 掉落的 经验值
+        # exp: 数量
+        # exp: 1
+      goal:
+        # 破坏方块的数量
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6破坏方块 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6破坏方块 - 已完成" by 10 20 10
+耕锄方块:
+  meta:
+    name: '耕锄方块'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'block farm'
+      condition:
+        # 被耕锄方块 的 朝向
+        # 朝向:
+        # https://bukkit.windit.net/javadoc/org/bukkit/block/BlockFace.html
+        # face: 'UP'
+
+        # 耕锄方块 时 手持物品
+        # item: 'diamond_hoe'
+        # item: '*[name=测试Name]'
+        # item: '*[lore=测试Lore]'
+
+        # 耕锄方块 的 材质
+        # dirt 泥土
+        # grass_block 草方块
+        # material: 'dirt'
+
+        # 交互类型
+        # action: 'RIGHT_CLICK_BLOCK'
+
+        # 耕锄方块 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 判断 哪只手 进行 的 耕锄方块
+        # 主手 HAND
+        # 副手 OFF_HAND
+        # hand: 'HAND'
+      goal:
+        # 需要耕锄方块的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6耕锄方块 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6耕锄方块 - 已完成" by 10 20 10
+点燃方块:
+  meta:
+    name: '点燃方块'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'block ignite'
+      condition:
+        # 被点燃 的 目标方块
+        # material: ''
+
+        # 点燃 目标方块 的 方块
+        # material:igniting: ''
+
+        # 目标方块 被 点燃 的原因
+        # 原因:
+        # https://bukkit.windit.net/javadoc/org/bukkit/event/block/BlockIgniteEvent.IgniteCause.html
+        # ARROW 方块被燃烧的箭点燃
+        # ENDER_CRYSTAL 方块被末影水晶点燃
+        # EXPLOSION 方块被爆炸点燃
+        # FIREBALL 方块被火球点燃
+        # FLINT_AND_STEEL 方块被发射器/玩家使用打火石点燃
+        # LAVA 方块被岩浆点燃
+        # LIGHTNING 方块被闪电点燃
+        # SPREAD 方块由于火的蔓延而被点燃
+        # cause: 'FLINT_AND_STEEL'
+
+        # 点燃 目标方块 的 位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+      goal:
+        # 需要点燃方块的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6点燃方块 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6点燃方块 - 已完成" by 10 20 10
+方块交互:
+  meta:
+    name: '方块交互'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'block interact'
+      condition:
+        # 部分 目标交互方块 的 朝向
+        # BlockFace类型:
+        # https://bukkit.windit.net/javadoc/org/bukkit/block/BlockFace.html
+        # face: 'UP'
+
+        # 交互 时手持(主副手)的 物品
+        # item: 'minecraft:bread' # 判断材质
+        # item: '*[name=测试Name]' # 判断名称
+        # item: '*[lore=测试Lore]' # 判断LORE
+
+        # 目标交互方块 的 材质
+        material: 'oak_button'
+
+        # 玩家交互方块 的 类型
+        # 交互类型:
+        # https://bukkit.windit.net/javadoc/org/bukkit/event/block/Action.html
+        # LEFT_CLICK_BLOCK 左击一个方块
+        # action: 'LEFT_CLICK_BLOCK'
+        # RIGHT_CLICK_BLOCK 右击一个方块
+        # action: 'RIGHT_CLICK_BLOCK'
+        # LEFT_CLICK_AIR 左击空气(实测无效)
+        # action: 'LEFT_CLICK_AIR'
+        # RIGHT_CLICK_AIR 右击空气(实测无效)
+        # action: 'RIGHT_CLICK_AIR'
+        # PHYSICAL 踩上一个方块(在耕地上跳跃,站在压力板上,让红石矿石发光(点击/踩踏),触发绊线钩)
+        # action: 'PHYSICAL'
+        action: 'RIGHT_CLICK_BLOCK'
+
+        # 目标交互方块 的 位置
+        # position: 'world x y z'
+        # position: 'world 14 65 -23'
+
+        # 用于搭配 "item" 判断主手
+        # hand: 'hand' # 主手
+      goal:
+        # 需要交互的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6方块交互 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6方块交互 - 已完成" by 10 20 10
+放置方块:
+  meta:
+    name: '放置方块'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'block place'
+      condition:
+        # 放置 的 方块
+        # material: 'grass_block'
+
+        # 放置 时 依附 的 方块
+        # material:against: 'grass_block'
+
+        # 放置 时 方块的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 判断 哪只手 进行 的 放置
+        # 主手 HAND
+        # 副手 OFF_HAND
+        # hand: 'HAND'
+      goal:
+        # 需要放置方块的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6放置方块 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6放置方块 - 已完成" by 10 20 10
+桶的清空:
+  meta:
+    name: '桶的清空'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'bucket empty'
+      condition:
+        # 清空桶 后 桶 的 物品材质
+        # item: 'minecraft:bucket'
+
+        # 目标交互方块 的 朝向
+        # BlockFace类型:
+        # https://bukkit.windit.net/javadoc/org/bukkit/block/BlockFace.html
+        # face: 'UP'
+
+        # 清空桶 时 被填装的材质
+        # material: 'lava'
+
+        # 清空桶 时 的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 清空桶 时 对着的方块
+        # material:clicked: 'stone'
+      goal:
+        # 需要完成桶的清空的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6桶的清空 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6桶的清空 - 已完成" by 10 20 10
+桶的填装:
+  meta:
+    name: '桶的填装'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'bucket fill'
+      condition:
+        # 填装桶 后 桶 的 物品材质
+        # item: 'minecraft:water_bucket'
+
+        # 目标交互方块 的 朝向
+        # BlockFace类型:
+        # https://bukkit.windit.net/javadoc/org/bukkit/block/BlockFace.html
+        # face: 'UP'
+
+        # 填装桶 时 被填装的材质
+        # material: 'lava'
+
+        # 填装桶 时 的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 填装桶 时 被填装的材质
+        # material:clicked: 'lava'
+      goal:
+        # 需要完成桶的填装的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6桶的填装 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6桶的填装 - 已完成" by 10 20 10
+世界更换:
+  meta:
+    name: '世界更换'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'change world'
+      condition:
+        # 更换 的 目标世界(与world:to冲突)
+        world: 'world'
+
+        # 世界更换 后 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 世界更换 后 玩家的世界(与world冲突)
+        # world:to: 'world'
+
+        # 世界更换 前 玩家的世界
+        # world:from: 'world'
+      goal:
+        # 需要世界更换的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6世界更换 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6世界更换 - 已完成" by 10 20 10
+# 该任务类型兼容CustomCrafting
+制作物品:
+  meta:
+    name: '制作物品'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'craft item'
+      condition:
+        # 制作 出 的 物品
+        item: "DIAMOND_SWORD"
+
+        # 参与 制作 的 物品
+        # item:matrix: 'MINECRAFT:DIAMOND'
+
+        # 制作物品 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+      goal:
+        # 需要制作物品的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6制作物品 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6制作物品 - 已完成" by 10 20 10
+物品掉落:
+  meta:
+    name: '物品掉落'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'drop item'
+      condition:
+        # 掉落 的 物品
+        # item: 'shears'
+        # item: '*[name=测试Name]'
+        # item: '*[lore=测试Lore]'
+
+        # 物品掉落 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+      goal:
+        # 需要掉落物品的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6物品掉落 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6物品掉落 - 已完成" by 10 20 10
+编辑书:
+  meta:
+    name: '编辑书'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'edit book'
+      condition:
+        # 编辑书 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 编辑 时 书 的 最小页数
+        # page: 2
+
+        # 编辑 后 的 书名
+        # title: 'test'
+
+        # 检测书本是否正在被签名
+        # true 是(需要签名)
+        # false 否(无需签名)
+        # signing: false
+
+        # 编辑 后 包含的 内容
+        # content: 'test'
+      goal:
+        # 需要编辑书的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6编辑书 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6编辑书 - 已完成" by 10 20 10
+物品附魔:
+  meta:
+    name: '物品附魔'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'enchant item'
+      condition:
+        # 附魔 的 物品
+        # item: 'diamond_sword'
+        # item: '*[name=测试Name]'
+        # item: '*[lore=测试Lore]'
+
+        # 物品附魔 的 经验花费
+        cost: 3
+
+        # 物品附魔 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 需附魔的指定类型
+        # type: ''
+      goal:
+        # 需要附魔的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6物品附魔 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6物品附魔 - 已完成" by 10 20 10
+实体繁殖:
+  meta:
+    name: '实体繁殖'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'entity breed'
+      condition:
+        # 引起 实体繁殖 的 物品
+        # item: 'wheat'
+        # item: '*[name=测试Name]'
+        # item: '*[lore=测试Lore]'
+
+        # 新生实体的母实体
+        # entity:mother: 'cow'
+
+        # 实体繁殖 时 实体的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+        # position: 'world 27 -60 -289 ~ 5'
+
+        # 实体繁殖 后 提供的 经验值下限
+        # exp: 3
+
+        # 参与繁殖的实体
+        # entity: 'cow'
+
+        # 新生实体的父实体
+        # entity:father: 'cow'
+      goal:
+        # 需要进行实体繁殖的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6实体繁殖 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6实体繁殖 - 已完成" by 10 20 10
+点燃实体:
+  meta:
+    name: '点燃实体'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'entity combust'
+      condition:
+        # 点燃实体 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 需被点燃 的 目标实体
+        # entity: 'pig'
+      goal:
+        # 需要点燃实体的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6点燃实体 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6点燃实体 - 已完成" by 10 20 10
+取消骑乘:
+  meta:
+    name: '取消骑乘'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'entity dismount'
+      condition:
+        # 取消骑乘 时 实体的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 被取消骑乘 的 实体
+        # entity: 'horse'
+      goal:
+        # 需要停止骑乘的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6取消骑乘 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6取消骑乘 - 已完成" by 10 20 10
+实体交互:
+  meta:
+    name: '实体交互'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'entity interact'
+      condition:
+        # 实体交互 时 手持 的 物品
+        # item: 'diamond_sword'
+        # item: '*[name=测试Name]'
+        # item: '*[lore=测试Lore]'
+
+        # 实体 被 交互 时的 位置
+        # position:clicked: '0.02 0.70 0.44 ~ 0.1'
+
+        # 实体驯服 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 需要交互 的 目标实体
+        # entity: 'wolf'
+
+        # 交互 时 判断物品 的 主副手
+        # hand: 'HAND' # 主手
+        # hand: 'OFF_HAND' # 副手
+      goal:
+        # 需要交互实体的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6实体交互 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6实体交互 - 已完成" by 10 20 10
+开始骑乘:
+  meta:
+    name: '开始骑乘'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'entity mount'
+      condition:
+        # 骑乘 时 实体的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 被骑乘 的 实体
+        # entity: 'horse'
+      goal:
+        # 需要进行骑乘的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6开始骑乘 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6开始骑乘 - 已完成" by 10 20 10
+实体驯服:
+  meta:
+    name: '实体驯服'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'entity tame'
+      condition:
+        # 实体驯服 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 需要驯服 的 目标实体
+        # entity: ''
+        entity: 'wolf'
+
+      goal:
+        # 需要世界更换的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6实体驯服 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6实体驯服 - 已完成" by 10 20 10
+经验变动:
+  meta:
+    name: '经验变动'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'exp change'
+      condition:
+        # 单次 经验变动 的 经验值下限
+        # amount: 1
+
+        # 经验变动 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 判断 来源 是否  为 经验球
+        # entity: 'experience_orb'
+      goal:
+        # 需要经验变动的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6经验变动 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6经验变动 - 已完成" by 10 20 10
+饱食度更改:
+  meta:
+    name: '饱食度更改'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'food change'
+      condition:
+        # 饱食度更改量
+        amount: 10
+
+        # 更改饱食度的食物
+        # item: 'cooked_beef'
+
+        # 饱食度更改 时 玩家的 所在位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+      goal:
+        # 需要饱食度更改的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6饱食度更改 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6饱食度更改 - 已完成" by 10 20 10
+熔炉取出:
+  meta:
+    name: '熔炉取出'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'furnace extract'
+      condition:
+        # 被取出 的 物品
+        # item: 'cooked_porkchop'
+        # item: '*[name=测试Name]'
+        # item: '*[lore=测试Lore]'
+
+        # 取出物品 的 熔炉的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 取出物品 时 需获得 的 经验值下限
+        # exp: 1
+      goal:
+        # 需要从熔炉取出物品的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6熔炉取出 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6熔炉取出 - 已完成" by 10 20 10
+# 仅在不破坏方块时触发
+作物收获:
+  meta:
+    name: '作物收获'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'harvest block'
+      condition:
+        # 作物收获 时 获得 的 物品
+        # item: 'sweet_berries'
+
+        # 收获 时 作物的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 作物 的 材质
+        # material: 'sweet_berry_bush'
+      goal:
+        # 需要完成作物收获的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6作物收获 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6作物收获 - 已完成" by 10 20 10
+生命恢复:
+  meta:
+    name: '生命恢复'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'health regain'
+      condition:
+        # 生命值恢复 的 原因
+        # 原因:
+        # https://bukkit.windit.net/javadoc/org/bukkit/event/entity/EntityRegainHealthEvent.RegainReason.html
+        # CUSTOM 上述原因未能涵盖的任何其它原因.
+        # EATING 玩家通过食用食物恢复生命值
+        # MAGIC 被药水或魔法治愈
+        # MAGIC_REGEN 被药水或魔法随时间持续治疗
+        # REGEN 玩家因和平模式 (difficulty=0) 带来的再生效果恢复生命值
+        # SATIATED 玩家因饥饿度已满, 自然恢复生命值
+        # reason: 'MAGIC'
+
+        # 需要 恢复 的 生命值下限
+        # amount: 1
+
+        # 是否 为 快速恢复(通过饱食度高于6,并且不处于饥饿状态时触发)
+        # true 是
+        # false 否
+        # fast: false
+
+        # 生命恢复 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+      goal:
+        # 需要生命恢复的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6生命恢复 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6生命恢复 - 已完成" by 10 20 10
+马匹跳跃:
+  meta:
+    name: '马匹跳跃'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'horse jump'
+      condition:
+        # 马匹跳跃 时 的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 跳跃强度
+        # power: 0.4–1.0
+        # power: 1.0
+
+        # 实现 马匹跳跃 的 实体
+        # 实体类型:
+        # https://bukkit.windit.net/javadoc/org/bukkit/entity/AbstractHorse.html
+        # entity: ''
+        # entity: 'horse'
+
+      goal:
+        # 需要完成马匹跳跃的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6马匹跳跃 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6马匹跳跃 - 已完成" by 10 20 10
+物品损坏:
+  meta:
+    name: '物品损坏'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'item break'
+      condition:
+        # 检测损坏的物品
+        item: 'wooden_sword'
+
+        # 物品损坏 时 玩家的 所在位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+      goal:
+        # 需要物品损坏的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6物品损坏 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6物品损坏 - 已完成" by 10 20 10
+物品消耗:
+  meta:
+    name: '物品消耗'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'item consume'
+      condition:
+        # 被消耗 的 物品
+        # item: 'minecraft:honey_bottle'
+
+        # 物品消耗 时 的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+      goal:
+        # 需要完成物品消耗的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6物品消耗 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6物品消耗 - 已完成" by 10 20 10
+手持物品:
+  meta:
+    name: '手持物品'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'item held'
+      condition:
+        # 切换 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 切换前后 的 槽位(物品栏第一格为0)
+        # slot:previous: 0
+
+        # slot:new: 1
+
+        # 切换前后 的 物品
+        # item:previous: 'shears'
+        # item:previous: '*[name=测试Name]'
+        # item:previous: '*[lore=测试Lore]'
+
+        # item:new: 'shears'
+        # item:new: '*[name=测试Name]'
+        # item:new: '*[lore=测试Lore]'
+
+      goal:
+        # 需要切换的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6手持物品 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6手持物品 - 已完成" by 10 20 10
+物品交互:
+  meta:
+    name: '物品交互'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'item interact'
+      condition:
+        # 用于 交互 的 物品
+        # item: 'diamond_sword'
+        # item: '*[name=测试Name]'
+        # item: '*[lore=测试Lore]'
+
+        # 交互 的 类型
+        # 交互类型:
+        # https://bukkit.windit.net/javadoc/org/bukkit/event/block/Action.html
+        # LEFT_CLICK_BLOCK 左击一个方块
+        # action: 'LEFT_CLICK_BLOCK'
+        # RIGHT_CLICK_BLOCK 右击一个方块
+        # action: 'RIGHT_CLICK_BLOCK'
+        # LEFT_CLICK_AIR 左击空气(实测无效)
+        # action: 'LEFT_CLICK_AIR'
+        # RIGHT_CLICK_AIR 右击空气(实测无效)
+        # action: 'RIGHT_CLICK_AIR'
+        # PHYSICAL 踩上一个方块(在耕地上跳跃,站在压力板上,让红石矿石发光(点击/踩踏),触发绊线钩)
+        # action: 'PHYSICAL'
+        # action: 'RIGHT_CLICK_BLOCK'
+
+        # 物品交互 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 判断 哪只手 进行 的 物品交互
+        # 主手 HAND
+        # 副手 OFF_HAND
+        # hand: 'HAND'
+      goal:
+        # 需要进行物品交互的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6物品交互 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6物品交互 - 已完成" by 10 20 10
+物品修补:
+  meta:
+    name: '物品修补'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'item mend'
+      condition:
+        # 进行 经验修补 的 物品
+        # item: 'shears'
+        # item: '*[name=测试Name]'
+        # item: '*[lore=测试Lore]'
+
+        # 进行 经验修补 时 的 修复量
+        # amount: 3
+
+        # 物品修补 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+      goal:
+        # 需要进行经验修补的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6物品修补 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6物品修补 - 已完成" by 10 20 10
+等级变动:
+  meta:
+    name: '等级变动'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'level change'
+      condition:
+        # 需变动 的 等级数(新等级 - 旧等级 = 需变动的等级数)
+        # level: 1
+
+        # 等级变动 后 玩家的等级
+        # level:new:
+
+        #  时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 等级变动 前 玩家的等级
+        # level:old:
+      goal:
+        # 需要进行经验变动的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6等级变动 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6等级变动 - 已完成" by 10 20 10
+拾取箭矢:
+  meta:
+    name: '拾取箭矢'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'pickup arrow'
+      condition:
+        # 拾取 的 箭矢类型
+        # spectral_arrow 光灵箭
+        # tipped_arrow 药水箭矢
+        # arrow 普通箭矢
+        # item: 'arrow'
+
+        # 拾取 的 箭矢数量(常用于插件修改事件后)
+        # amount: 3
+
+        # 拾取箭矢 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+      goal:
+        # 需要拾取箭矢的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6拾取箭矢 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6拾取箭矢 - 已完成" by 10 20 10
+拾取物品:
+  meta:
+    name: '拾取物品'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'pickup item'
+      condition:
+        # 拾取 的 物品
+        # item: 'diamond_sword'
+        # item: '*[name=测试Name]'
+        # item: '*[lore=测试Lore]'
+
+        # 拾取 的 物品数量
+        # amount: 3
+
+        # 拾取物品 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+      goal:
+        # 需要拾取物品的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6拾取物品 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6拾取物品 - 已完成" by 10 20 10
+玩家成就:
+  meta:
+    name: '玩家成就'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'player advancement'
+      condition:
+        # 需获得 的 成就
+        # advancement: 'minecraft:adventure/avoid_vibration'
+
+        # 获得成就 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+      goal:
+        # 需要获得成就的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家成就 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家成就 - 已完成" by 10 20 10
+玩家动作:
+  meta:
+    name: '玩家动作'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'player animation'
+      condition:
+        # 玩家 执行动作 时 的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 玩家 执行 的 动作类型
+        # 动作类型:
+        # https://bukkit.windit.net/javadoc/org/bukkit/event/player/PlayerAnimationType.html
+        # ARM_SWING 主手挥动
+        # OFF_ARM_SWING 副手挥动(1.19+)
+        # animation: 'OFF_ARM_SWING'
+      goal:
+        # 需要执行动作的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家动作 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家动作 - 已完成" by 10 20 10
+使用铁砧:
+  meta:
+    name: '使用铁砧'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'player anvil'
+      condition:
+        # 使用铁砧 后 输出的物品
+        # item: 'diamond_sword'
+        # item: '*[name=测试Name]'
+        # item: '*[lore=测试Lore]'
+
+        # 使用铁砧 时 物品的花费
+        # cost: 1
+
+        # 使用铁砧 前/后 输出的物品
+        # item: 'diamond_sword'
+        # item: '*[name=测试Name]'
+        # item: '*[lore=测试Lore]'
+
+        # 使用铁砧 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 使用铁砧 后 物品 被更改 的 名字
+        # text: '测试Name'
+
+      goal:
+        # 需要使用铁砧的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6使用铁砧 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6使用铁砧 - 已完成" by 10 20 10
+玩家攻击:
+  meta:
+    name: '玩家攻击'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'player attack'
+      condition:
+        # 攻击生物 时 需造成的 最小伤害下限
+        # damage: 最小伤害下限
+        # damage: 100
+
+        # 攻击生物 时 使用 的 武器
+        # weapon: 'minecraft:diamond_sword' # 判断材质
+
+        # 攻击生物 的 伤害类型
+        # 伤害类型:
+        # https://bukkit.windit.net/javadoc/org/bukkit/event/entity/EntityDamageEvent.DamageCause.html
+        # cause: 'CUSTOM'
+
+        # 攻击生物 的 目标
+        # victim: 'cow'
+
+        # 玩家 攻击 时 玩家 的 位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 此次 攻击 最终 的 伤害值下限(经过护甲等的修改)
+        # damage:final: 10
+      goal:
+        # 需要完成攻击的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家攻击 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家攻击 - 已完成" by 10 20 10
+玩家聊天:
+  meta:
+    name: '玩家聊天'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'player chat'
+      condition:
+        # 发言 时 玩家的 所在位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 发言 时 玩家聊天信息中 需包含的 字符串
+        message: 'test'
+      goal:
+        # 需要发言的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家聊天 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家聊天 - 已完成" by 10 20 10
+玩家指令:
+  meta:
+    name: '玩家指令'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'player command'
+      condition:
+        # 发送指令 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 发送 的 目标指令
+        # command: '/test'
+      goal:
+        # 需要发送指令的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家指令 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家指令 - 已完成" by 10 20 10
+玩家受伤:
+  meta:
+    name: '玩家受伤'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'player damage'
+      condition:
+        # 玩家受伤 时 需造成的 最小伤害下限
+        # damage: 最小伤害下限
+        # damage: 100
+
+        # 玩家受伤 的 伤害类型
+        # 伤害类型:
+        # https://bukkit.windit.net/javadoc/org/bukkit/event/entity/EntityDamageEvent.DamageCause.html
+        # cause: 'CUSTOM'
+
+        # 玩家受伤 的 目标
+        # victim: ''
+
+        # 玩家受伤 时 玩家 的 位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 此次 攻击 最终 的 伤害值下限(经过护甲等的修改)
+        # damage:final: 10
+      goal:
+        # 需要完成攻击的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家受伤 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家受伤 - 已完成" by 10 20 10
+受到方块伤害:
+  meta:
+    name: '受到方块伤害'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'player damage by block'
+      condition:
+        # 攻击 时 需造成的 最小伤害下限
+        # damage: 1
+
+        # 触发 的 伤害原因
+        # 原因:
+        # https://bukkit.windit.net/javadoc/org/bukkit/event/entity/EntityDamageEvent.DamageCause.html
+        # cause: 'CONTACT'
+
+        # 被攻击者
+        # victim: ''
+
+        # 造成伤害 的 方块类型
+        # block: 'minecraft:cactus'
+
+        # 受到方块伤害 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 此次 攻击 最终 的 伤害值下限(经过护甲等的修改)
+        # damage:final: 1
+      goal:
+        # 需要受到方块伤害的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6受到方块伤害 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6受到方块伤害 - 已完成" by 10 20 10
+受到实体伤害:
+  meta:
+    name: '受到实体伤害'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'player damage by entity'
+      condition:
+        # 攻击 时 需造成的 最小伤害下限
+        # damage: 1
+
+        # 攻击 的 手持物品
+        # weapon: 'minecraft:diamond_sword'
+
+        # 触发 的 伤害原因
+        # 原因:
+        # https://bukkit.windit.net/javadoc/org/bukkit/event/entity/EntityDamageEvent.DamageCause.html
+        # cause: 'ENTITY_ATTACK'
+
+        # 攻击者 的 类型
+        # attacker: 'zombie'
+
+        # 被攻击者
+        # victim: ''
+
+        # 受到实体伤害 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 此次 攻击 最终 的 伤害值下限(经过护甲等的修改)
+        # damage:final: 1
+      goal:
+        # 需要受到实体伤害的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6受到实体伤害 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6受到实体伤害 - 已完成" by 10 20 10
+玩家死亡:
+  meta:
+    name: '玩家死亡'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'player death'
+      condition:
+        # 玩家死亡 时 的 伤害下限
+        # damage: 最小伤害下限
+        # damage: 100
+
+        # 若存在攻击者,则判断 攻击者 的 武器
+        # weapon: 'diamond_sword'
+
+        # 玩家死亡 时 掉落 的 物品
+        # drops: 'diamond_sword'
+
+        # 致 玩家死亡 的 伤害类型
+        # 伤害类型:
+        # https://bukkit.windit.net/javadoc/org/bukkit/event/entity/EntityDamageEvent.DamageCause.html
+        # cause: 'CUSTOM'
+
+        # 攻击者 的 类型
+        # attacker: 'zombie'
+
+        # 玩家死亡 时 玩家 的 位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 玩家死亡 时 掉落 的 经验值
+        # exp: 1
+
+        # 复活后 的 生命值
+        # revive-health: 20
+
+        # 玩家死亡 时 的 死亡消息提示
+        # message: 'test'
+
+        # 玩家死亡 时 最终 的 伤害值下限(经过护甲等的修改)
+        # damage:final: 1
+      goal:
+        # 需要死亡的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家死亡 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家死亡 - 已完成" by 10 20 10
+玩家垂钓:
+  meta:
+    name: '玩家垂钓'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'player fish'
+      condition:
+        # 收杆 时 钓到的物品
+        item: 'cod'
+
+        # 钓鱼 时 玩家的 所在位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 钓鱼 时 特定的 触发状态
+        # State状态类型:
+        # https://bukkit.windit.net/javadoc/org/bukkit/event/player/PlayerFishEvent.State.html
+        # state: 'BITE'
+        # 当钓鱼钩有鱼咬钩,并预备好被收杆时触发.
+        # state: 'CAUGHT_ENTITY'
+        # 当玩家成功钓到目标实体时触发.
+        # state: 'CAUGHT_FISH'
+        # 当玩家成功钓到鱼并开始收杆时触发.
+        # state: 'FAILED_ATTEMPT'
+        # 当玩家由于错误的时机而未能成功钓到鱼咬钩时触发.
+        # state: 'FISHING'
+        # 当玩家正在钓鱼,即投掷钓鱼竿时触发.
+        # state: 'IN_GROUND'
+        # 当钓鱼钩卡在地面上时触发.
+        # state: 'REEL_IN'
+        # 当玩家没有钓到任何东西而收杆时触发.
+        # state: 'FAILED_ATTEMPT'
+
+        # entity:hook: 'pufferfish'
+
+        # 钓鱼 时 掉落的 经验值
+        # exp: 数量
+        # exp: 1
+
+        # 当玩家钓到目标实体,收杆时实体的类型
+        # entity: 'pig'
+      goal:
+        # 需要触发状态的数量
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家垂钓 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家垂钓 - 已完成" by 10 20 10
+玩家跳跃:
+  meta:
+    name: '玩家跳跃'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'player jump'
+      condition:
+        # 玩家跳跃 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+      goal:
+        # 需要完成玩家跳跃的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家跳跃 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家跳跃 - 已完成" by 10 20 10
+玩家击杀:
+  meta:
+    name: '玩家击杀'
+    type: 'Bukkit'
+  task:
+    '0':
+      #击杀生物 对应的objective类型
+      objective: 'player kill'
+      condition:
+        # 击杀生物 需造成的 最小伤害下限
+        # damage: 最小伤害下限
+        # damage: 10
+
+        # 击杀生物 时 使用 的 武器
+        # weapon: 'minecraft:diamond_sword' # 判断材质
+        # weapon: '*[name=测试Name]' # 判断名称
+        # weapon: '*[lore=测试Lore]' # 判断LORE
+
+        # 击杀生物 时 触发的掉落物品
+        # drops: 'leather'
+
+        # 击杀生物 的 伤害类型
+        # 伤害类型:
+        # https://bukkit.windit.net/javadoc/org/bukkit/event/entity/EntityDamageEvent.DamageCause.html
+        # cause: 'CUSTOM'
+
+        # 击杀生物 时 生物所在位置
+        # position: '世界名 x y z ~ 距离界限'
+        # position: 'world 10 65 -14 ~ 5'
+
+        # victim是击杀生物的配置项目
+        # victim: 'cow'
+
+        # 击杀生物 时 需要 掉落的 最小经验值
+        # exp: 数量
+        # exp: 1
+
+        # 击杀生物 时 需要 最终的 最小伤害贡献量
+        # revive-health: 100
+
+        # 击杀生物 时 最终的 斩杀伤害下限(经过护甲等的修改)
+        # damage:final: 斩杀伤害下限
+        # damage:final: 10
+      goal:
+        # 需要击杀的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家击杀 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家击杀 - 已完成" by 10 20 10
+玩家移动:
+  meta:
+    name: '玩家移动'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'player move'
+      condition:
+        # 玩家移动 后 玩家的 所在位置
+        # position:to
+
+        # 玩家移动 前 玩家的 初始位置
+        # position:from
+
+        # 玩家移动 时 玩家的 所在位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+      goal:
+        # 需要到达目的地的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家移动 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家移动 - 已完成" by 10 20 10
+真实移动:
+  meta:
+    name: '真实移动'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'player real move'
+      condition:
+        # 玩家移动 后 玩家的 所在位置
+        # position:to
+
+        # 玩家移动 前 玩家的 初始位置
+        # position:from
+
+        # 玩家移动 时 玩家的 所在位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+      goal:
+        # 需要到达目的地的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6真实移动 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6真实移动 - 已完成" by 10 20 10
+玩家重生:
+  meta:
+    name: '玩家重生'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'player respawn'
+      condition:
+        # 玩家是否在重生锚重生(1.16+)
+        # true 是
+        # false 否
+        # spawn:anchor: true
+
+        # 玩家是否在床上重生
+        # true 是
+        # false 否
+        # spawn:bed: true
+
+        # 重生 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+      goal:
+        # 需要重生的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家重生 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家重生 - 已完成" by 10 20 10
+玩家复活:
+  meta:
+    name: '玩家复活'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'player resurrect'
+      condition:
+        # 用于复活 的 图腾
+        # item: 'totem_of_undying'
+        # item: '*[name=测试Name]'
+        # item: '*[lore=测试Lore]'
+
+        # 复活 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+      goal:
+        # 需要复活的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家复活 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家复活 - 已完成" by 10 20 10
+激流触发:
+  meta:
+    name: '激流触发'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'player riptide'
+      condition:
+        # 用于激流 的 物品
+        # item: 'TRIDENT'
+        # item: '*[name=测试Name]'
+        # item: '*[lore=测试Lore]'
+
+        # 激流触发 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+      goal:
+        # 需要触发激流的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6激流触发 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6激流触发 - 已完成" by 10 20 10
+玩家裁剪:
+  meta:
+    name: '玩家裁剪'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'player shear'
+      condition:
+        # 裁剪 时 手持物品
+        # item: 'shears'
+        # item: '*[name=测试Name]'
+        # item: '*[lore=测试Lore]'
+
+        # 裁剪 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 裁剪 的 目标实体
+        # entity: 'sheep'
+
+        # 判断 哪只手 进行 的 裁剪
+        # 主手 HAND
+        # 副手 OFF_HAND
+        # hand: 'HAND'
+      goal:
+        # 需要裁剪的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家裁剪 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家裁剪 - 已完成" by 10 20 10
+玩家统计:
+  meta:
+    name: '玩家统计'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'player statistic'
+      condition:
+        # 统计信息 的 类型
+        # 类型:
+        # https://bukkit.windit.net/javadoc/org/bukkit/Statistic.html
+        # statistic: ''
+
+        # 统计 涉及 的 实体种类
+        # 种类:
+        # https://bukkit.windit.net/javadoc/org/bukkit/entity/EntityType.html
+        # type:entity:
+
+        # 统计 涉及 的 物品类型
+        # 类型:
+        # https://bukkit.windit.net/javadoc/org/bukkit/Material.html
+        # type:material: 'diamond_hoe'
+
+        # 统计 前 的 数据值
+        # value:previous: 1
+
+        # 统计 后 的 数据值
+        # value:new: 2
+
+        # 统计数据 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 统计 后 的 数据值
+        # value: 1
+      goal:
+        # 需要玩家统计的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家统计 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家统计 - 已完成" by 10 20 10
+# *该任务由魔改版本提供
+切换副手:
+  meta:
+    name: '切换副手'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'player swap'
+      condition:
+        # 切换副手 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 获取切换后主手的物品
+        # main: 'diamond_sword'
+
+        # 获取切换后副手的物品
+        # offhand: 'iron_sword'
+      goal:
+        # 需要的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6切换副手 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6切换副手 - 已完成" by 10 20 10
+玩家传送:
+  meta:
+    name: '玩家传送'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'player teleport'
+      condition:
+        # 玩家传送 后 玩家的位置
+        # position:to: 'world -9 65 0 ~ 5'
+
+        # 玩家传送 前 玩家的位置
+        # position:from: 'world -2 66 15 ~ 2'
+
+        # 传送原因
+        # CHORUS_FRUIT 由紫影果进行传送
+        # COMMAND 由命令进行传送
+        # DISMOUNT 由玩家离开骑乘状态进行传送(位置更改)
+        # END_GATEWAY 由末地折跃门进行传送
+        # END_PORTAL 由末地传送门进行传送
+        # ENDER_PEARL 玩家抛出末影珍珠传送
+        # NETHER_PORTAL 由地狱传送门进行传送
+        # PLUGIN 由插件进行传送
+        # SPECTATE 由旁观者菜单传送到一个实体/玩家
+        # UNKNOWN 由除已知枚举外的其他情况进行了传送
+        # cause: 'UNKNOWN'
+
+        # 玩家传送 后 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+      goal:
+        # 需要玩家传送的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家传送 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家传送 - 已完成" by 10 20 10
+进入传送门:
+  meta:
+    name: '进入传送门'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'portal enter'
+      condition:
+        # 进入传送门 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world 28 -60 -310 ~ 5'
+      goal:
+        # 需要进入传送门的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6进入传送门 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6进入传送门 - 已完成" by 10 20 10
+离开传送门:
+  meta:
+    name: '离开传送门'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'portal exit'
+      condition:
+        # 离开传送门 后 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position:to: 'world_nether 19.5 67.0 -32.5 ~ 2'
+
+        # 离开传送门 前 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position:from: 'world 29.5 -60 -292.5 ~ 2'
+
+        # 离开传送门 后 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position:to: 'world_nether 19.5 67.0 -32.5 ~ 5'
+      goal:
+        # 需要离开传送门的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6离开传送门 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6离开传送门 - 已完成" by 10 20 10
+压力板触发:
+  meta:
+    name: '压力板触发'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'pressure plate'
+      condition:
+        # 压力板 的 材质
+        # material: 'wooden_presure_plate'
+
+        # 压力板触发 时 压力板的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+      goal:
+        # 需要触发压力板的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6压力板触发 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6压力板触发 - 已完成" by 10 20 10
+获得配方:
+  meta:
+    name: '获得配方'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'recipe discover'
+      condition:
+        # 获得配方 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 需获得 的 配方
+        # 此处为获得钻石触发获得的配方之一
+        # recipe: 'minecraft:diamond_sword'
+      goal:
+        # 需要获得配方的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6获得配方 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6获得配方 - 已完成" by 10 20 10
+弓的发射:
+  meta:
+    name: '弓的发射'
+    type: 'Bukkit'
+  task:
+    '0':
+      objective: 'shoot bow'
+      condition:
+        # 发射 时 箭矢 的 载体
+        # bow 弓
+        # crossbow 弩
+        # item: 'bow'
+
+        # 发射 时 消耗 的 物品
+        # item:consumable: 'tipped_arrow'
+
+        # 发射出 的 抛射物 类型
+        # spectral_arrow 光灵箭
+        # arrow 普通箭矢 & 药水箭矢
+        # arrow: 'arrow'
+
+        # 计算 是否 为 可消耗的
+        # consumable: true
+
+        # 拉弓的力度
+        # force: 0-1.0
+        # force: 1.0
+
+        # 发射 时 的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 判断 哪只手 进行 的 弓的发射
+        # 主手 HAND
+        # 副手 OFF_HAND
+        # hand: 'HAND'
+      goal:
+        # 需要完成弓的发射的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6弓的发射 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6弓的发射 - 已完成" by 10 20 10
+护甲变更:
+  meta:
+    name: '护甲变更'
+    type: 'Bukkit-Paper'
+  task:
+    '0':
+      objective: 'armor change'
+      condition:
+        # 更改 的 护甲槽位
+        # HEAD 头盔
+        # CHEST 胸甲
+        # LEGS 护腿
+        # FEET 鞋子
+        # slot: 'CHEST'
+
+        # 更改 的 护甲物品
+        # head: ''
+        # chest: ''
+        # legs: ''
+        # feet: ''
+        # chest: 'iron_chestplate'
+        # chest: '*[Name=测试Name]'
+        # chest: '*[Lore=测试Lore]'
+      goal:
+        # 需要进行护甲变更的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6护甲变更 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6护甲变更 - 已完成" by 10 20 10
+成就进度:
+  meta:
+    name: '成就进度'
+    type: 'Bukkit-Paper'
+  task:
+    '0':
+      objective: 'criterion grant'
+      condition:
+        # 需完成 的 某个成就进度
+        # criterion: 'minecraft:bamboo_jungle'
+
+        # 需完成 的 某个成就
+        # advancement: 'minecraft:adventure/adventuring_time'
+
+        # 获得成就 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+      goal:
+        # 需要的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6成就进度 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6成就进度 - 已完成" by 10 20 10
+鞘翅驱动:
+  meta:
+    name: '鞘翅驱动'
+    type: 'Bukkit-Paper'
+  task:
+    '0':
+      objective: 'elytra boost'
+      condition:
+        # 驱动鞘翅 的 烟花
+        # item: 'firework_rocket[name=测试Name]'
+        # item: '*[name=测试Name]'
+        # item: '*[lore=测试Lore]'
+
+        # 驱动鞘翅 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 本次 驱动鞘翅 是否 消耗了 烟花
+        # true 是
+        # false 否
+        # consume: true
+
+        # 作用未知
+        # firework: 'Firework'
+      goal:
+        # 需要的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6鞘翅驱动 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6鞘翅驱动 - 已完成" by 10 20 10
+拾取经验:
+  meta:
+    name: '拾取经验'
+    type: 'Bukkit-Paper'
+  task:
+    '0':
+      objective: 'pickup exp'
+      condition:
+        # 经验球 的 生成原因
+        # 生成原因:
+        # https://purpurmc.org/javadoc/org/bukkit/entity/ExperienceOrb.SpawnReason.html
+        # BLOCK_BREAK 当玩家破坏掉落经验值的方块(如钻石矿)时
+        # BREED 当玩家繁殖动物时
+        # CUSTOM 当通过BukkitAPI触发自定义事件时
+        # ENTITY_DEATH 当实体被玩家击杀后死亡时
+        # EXP_BOTTLE 当玩家扔出经验瓶时
+        # FISHING 当玩家钓鱼时
+        # FURNACE 当玩家使用熔炉时
+        # GRINDSTONE 当玩家使用砂轮时
+        # PLAYER_DEATH 当玩家死亡时
+        # UNKNOWN 无法确定经验值生成的原因
+        # VILLAGER_TRADE 玩家与村民进行交易时
+        # reason: 'ENTITY_DEATH'
+
+        # 拾取经验 时 的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 需要 拾取 的 经验值
+        # exp: 1
+
+        # 是否为 经验球
+        # orb: true
+      goal:
+        # 需要完成拾取经验的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6拾取经验 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6拾取经验 - 已完成" by 10 20 10
+发射抛射物:
+  meta:
+    name: '发射抛射物'
+    type: 'Bukkit-Paper'
+  task:
+    '0':
+      objective: 'shoot projectile'
+      condition:
+        # 发射抛射物 的 物品
+        # item: 'snowball'
+        # item: '*[name=测试Name]'
+        # item: '*[lore=测试Lore]'
+
+        # 发射抛射物 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 本次 发射抛射物 是否 消耗了 物品
+        # true 是
+        # false 否
+        # consume: true
+
+        # 发射 的 抛射物 类型
+        # 类型:
+        # https://purpurmc.org/javadoc/org/bukkit/entity/Projectile.html
+        # AbstractArrow(Arrow, SpectralArrow, TippedArrow, Trident) 抽象实现的箭矢
+        # ARROW 箭矢
+        # DragonFireball 末影龙火球
+        # Egg 鸡蛋
+        # EnderPearl 末影珍珠
+        # Fireball 火球
+        # Firework 烟花
+        # FishHook 鱼钩
+        # LargeFireball 大型火球
+        # LingeringPotion 滞留型药水
+        # LlamaSpit 羊驼唾沫
+        # ShulkerBullet 潜影贝导弹
+        # SizedFireball 指定尺寸的火球
+        # SmallFireball 小型火球
+        # Snowball 雪球
+        # SpectralArrow 光灵箭
+        # SplashPotion 喷溅型药水
+        # ThrowableProjectile 可投掷的抛射物
+        # ThrownExpBottle 附魔之瓶
+        # ThrownPotion(LingeringPotion, SplashPotion) 可抛射药水
+        # TippedArrow 附带药水效果的箭矢
+        # Trident 三叉戟
+        # WitherSkull 凋灵之首
+        # projectile: 'snowball'
+      goal:
+        # 需要发射抛射物的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6发射抛射物 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6发射抛射物 - 已完成" by 10 20 10
+玩家获胜:
+  meta:
+    name: '玩家获胜'
+    type: 'ChatReaction'
+  task:
+    '0':
+      objective: 'chatreaction win'
+      condition:
+        # 获胜 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+      goal:
+        # 需要在拼写竞赛中获胜的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家获胜 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家获胜 - 已完成" by 10 20 10
+# 该任务可由:
+# 指令"/chemdah level setlevel <玩家> <等级名> <等级值>"设置以完成
+# Kether语句"profile level <等级名> level to <等级值>"设置以完成
+客制等级:
+  meta:
+    name: '客制等级'
+    type: 'Chemdah'
+  task:
+    '0':
+      objective: 'custom level'
+      goal:
+        # 自定义等级 的 名称
+        id: 'default_0'
+
+        # 需到达 的 等级
+        level: 5
+
+        # 需要到达该等级的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6客制等级 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6客制等级 - 已完成" by 10 20 10
+结束对话:
+  meta:
+    name: '结束对话'
+    type: 'Chemdah'
+  task:
+    '0':
+      objective: 'player conversation'
+      condition:
+        # 结束对话 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 需要完成 的 对话id
+        # id: 'conversation_0'
+      goal:
+        # 需要结束对话的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6结束对话 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6结束对话 - 已完成" by 10 20 10
+拒绝对话:
+  meta:
+    name: '拒绝对话'
+    type: 'Chemdah'
+  task:
+    '0':
+      objective: 'player conversation refused'
+      condition:
+        # 拒绝对话 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 需拒绝 的 对话
+        # id: 'conversation_0'
+      goal:
+        # 需要拒绝对话的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6拒绝对话 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6拒绝对话 - 已完成" by 10 20 10
+# 该任务可由:
+# 指令"/chemdah data set <玩家名> <数据名> <数据值>"更改以完成
+# Kether语句"profile data <数据名> to <数据值>"更改以完成
+玩家数据:
+  meta:
+    name: '玩家数据'
+    type: 'Chemdah'
+  task:
+    '0':
+      objective: 'player data'
+      goal:
+        # kether条件代理
+        # $: check profile data test > 5
+
+        # 数据名
+        key: 'test'
+
+        # 数据值
+        value: 3
+
+        # 完成次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家数据 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家数据 - 已完成" by 10 20 10
+背包检测:
+  meta:
+    name: '背包检测'
+    type: 'Chemdah'
+  task:
+    '0':
+      objective: 'player inventory'
+      condition:
+        # 检测 的 物品
+        item: 'shears'
+        # item: '*[name=测试Name]'
+        # item: '*[lore=测试Lore]'
+
+        # 被检测物品 的 数量
+        # amount: 1
+
+        # 检测到 后 是否 消耗(开启时不停检测,拥有至少一个时会开始扣除)
+        # 该项会导致Kether语句获取进度失败
+        # true 是
+        # false 否
+        # consume: true
+      goal:
+        # 需要完成的次数(与上方的condition.amount选用一个)
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6背包检测 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6背包检测 - 已完成" by 10 20 10
+# 该任务可由:
+# 指令"/chemdah quest trigger <玩家名> <值>"呼出以完成
+# Kether语句"trigger <值>"呼出以完成
+呼出触发:
+  meta:
+    name: '呼出触发'
+    type: 'Chemdah'
+  task:
+    '0':
+      objective: 'trigger'
+      condition:
+        # 呼出触发 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 呼出触发 的 单个值(满足其一)
+        # values: 'a'
+
+        # 呼出触发 的 多个值(满足其一)
+        # values:
+        #   - 'b'
+        #   - 'c'
+      goal:
+        # 需要呼出触发的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6呼出触发 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6呼出触发 - 已完成" by 10 20 10
+左键公民:
+  meta:
+    name: '左键公民'
+    type: 'Citizens'
+  task:
+    '0':
+      objective: 'cnpc damage'
+      condition:
+        # 左键 时 公民NPC 的 位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 目标 公民NPC 的 ID
+        # id: 0
+
+        # 目标 公民NPC 的 名称
+        # name: 'test'
+        # name:
+        #   - 'test1'
+        #   - 'test2'
+
+        # 目标 公民NPC 的 实体类型
+        # type: 'player'
+        # type:
+        #   - 'player'
+        #   - 'pig'
+
+        # 需要造成 的 伤害量
+        # damage: 1
+      goal:
+        # 需要左键公民的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6左键公民 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6左键公民 - 已完成" by 10 20 10
+右键公民:
+  meta:
+    name: '右键公民'
+    type: 'Citizens'
+  task:
+    '0':
+      objective: 'cnpc interact'
+      condition:
+        # 右键 时 公民NPC 的 位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 目标 公民NPC 的 ID
+        # id: 0
+
+        # 目标 公民NPC 的 名称
+        # name: 'test'
+        # name:
+        #   - 'test1'
+        #   - 'test2'
+
+        # 目标 公民NPC 的 实体类型
+        # type: 'player'
+        # type:
+        #   - 'player'
+        #   - 'pig'
+      goal:
+        # 需要右键公民的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6右键公民 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6右键公民 - 已完成" by 10 20 10
+开启抽奖箱:
+  meta:
+    name: '开启抽奖箱'
+    type: 'CrazyCrates'
+  task:
+    '0':
+      objective: 'cc open'
+      condition:
+        # 开启抽奖箱 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # 抽奖箱 的 名称(无视大小写)
+        # name: 'CrateExample'
+        # name:
+        #   - 'test1'
+        #   - 'test2'
+      goal:
+        # 需要开启抽奖箱的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6开启抽奖箱 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6开启抽奖箱 - 已完成" by 10 20 10
+怪物击杀:
+  meta:
+    name: '怪物击杀'
+    type: 'Mythicmobs'
+  task:
+    '0':
+      objective: 'mythicmobs kill'
+      condition:
+        # 击杀怪物 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+
+        # Mythicmobs 怪物内部ID
+        # name: '草原狼'
+
+        # Mythicmobs 怪物等级
+        # 指定等级
+        # level: 3
+        # 最小等级
+        # min-level: 1
+      goal:
+        # 需要击杀怪物的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6怪物击杀 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6怪物击杀 - 已完成" by 10 20 10
+
+# 接受任务后会持续检测
+持续检测:
+  meta:
+    name: '持续检测'
+    type: 'Chemdah'
+  task:
+    '0':
+      objective: 'always'
+      condition:
+        # 达成目标时 时 玩家的位置
+        # position: '世界名 x y z ~ 距离界限(本身向外延伸5格)'
+        # position: 'world -9 65 0 ~ 5'
+      goal:
+        # kether条件代理
+        $: check profile data test > 10
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6持续检测 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6持续检测 - 已完成" by 10 20 10
+# 实际用途不明
+永不完成:
+  meta:
+    name: '永不完成'
+    type: 'Chemdah'
+  task:
+    '0':
+      objective: 'never'
+      condition:
+      goal:
+        $: true
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6永不完成 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6永不完成 - 已完成" by 10 20 10
+# Adyeshach-2.0.0-30 Chemdah-0.3.30 Purpur-1.19.2下,测试无效。
+# 建议改用PlaceHolderAPI内的"placeholder api"用以检测
+玩家权限:
+  meta:
+    name: '玩家权限'
+    type: 'Chemdah'
+  task:
+    '0':
+      objective: 'player permission'
+      condition:
+        # $: kether代理动作
+      goal:
+        # $: kether代理动作
+
+        # 需要获得的权限
+        permission: 'test'
+
+        # 需要完成的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家权限 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6玩家权限 - 已完成" by 10 20 10
+变量检测:
+  meta:
+    name: '变量检测'
+    type: 'PlaceholderAPI'
+  task:
+    '0':
+      objective: placeholder api
+      goal:
+        # 检测的变量
+        key: "%aboe_金币%"
+
+        # 需要达到的值
+        value: "1000"
+
+        # 需要完成检测的次数
+        amount: 1
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6变量检测 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6变量检测 - 已完成" by 10 20 10
+在部分任务(如 player inventory)及部分语句(inventory check)中常需要对物品进行确切识别，因此了解如何判断物品显得十分重要。
+多个判断可使用 "," 分割，如
+/chs invoke inventory check "minecraft:diamond[name=abc,lore=123]" amount 1
+请不要在判断中使用特殊符号，这可能会对判断结果产生影响。
+材质判断
+材质判断，识别的是物品的 material 值。
+/chs invoke inventory check "minecraft:diamond" amount 1
+在游戏中输入该指令，即可判断背包中 钻石 的数量是否大于等于1。
+绿色部分便是物品识别的表达式内容。
+而 minecraft:diamond 可看作 命名空间:材质名称，以便于理解。
+更多材质名称请在游戏中使用按键 F3+H 查看。
+名称判断
+名称判断识别的是物品的展示名称。
+/chs invoke inventory check "minecraft:diamond[name=钻石一号]" amount 1
+在游戏中输入该指令，即可判断背包中 名称为 "钻石一号" 的钻石 的数量是否大于等于1。
+[name=XX]，其中XX为需要判断的物品名称。
+Lore判断
+Lore判断识别的是物品的Lore描述。
+/chs invoke inventory check "minecraft:diamond[lore=钻石一号]" amount 1
+在游戏中输入该指令，即可判断背包中 Lore含有 "钻石一号" 的钻石 的数量是否大于等于1。
+[lore=XX]，其中XX为需要判断的物品Lore描述。
+耐久值判断
+耐久值判断识别的是物品的耐久度。
+/chs invoke inventory check "minecraft:diamond_sword[damage=6]" amount 1
+在游戏中输入该指令，即可判断背包中包含 已损失的耐久度为6的钻石剑 的数量是否大于等于1。
+[damage=6]，其中6为需要判断的物品已损失的耐久度。
+别名 durability。
+自定义模型数据值判断
+自定义模型数据值判断识别的是物品的CustomModelData值。
+/chs invoke inventory check "minecraft:diamond[custom-model-data=10000]" amount 1
+在游戏中输入该指令，即可判断背包中包含 CustomModelData值为10000的钻石 的数量是否大于等于1。[custom-model-data=XX]，其中XX为需要判断的物品CustomModelData值。
+附魔判断
+附魔判断识别的是物品的附魔。
+/chs invoke inventory check "minecraft:diamond_sword[enchant=DAMAGE_ALL]" amount 1
+在游戏中输入该指令，即可判断背包中包含 已附魔锋利Ⅰ的钻石剑 的数量是否大于等于1。
+[enchant=XX]，其中XX为需要判断的物品的附魔，此处附魔需要大写。
+更多附魔可点击查阅。
+别名 ench，enchants，enchantment。
+药水判断
+药水判断识别的是物品的药水效果。
+/chs invoke inventory check "minecraft:potion[potion=SPEED]" amount 1
+在游戏中输入该指令，即可判断背包中包含 速度的药水 的数量是否大于等于1。
+[potion=XX]，其中XX为需要判断的物品的药水效果，此处药水名称需要大写。
+兼容Bukkit中的customEffects。
+更多药水效果可点击查阅。
+别名 potions。
+
+右键NPC:
+  meta:
+    name: '右键NPC'
+    type: 'Adyeshach'
+  task:
+    '0':
+      objective: 'anpc interact'
+  addon:
+    automation:
+      auto-accept: true
+    # 建议采用此处的管控措施(以防止任务重复接取)
+    control:
+      - type: repeat complete
+        amount: '1'
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6右键NPC - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6右键NPC - 已完成" by 10 20 10
+任务组依赖:
+  meta:
+    name: '任务组依赖'
+    type: 'Adyeshach'
+  task:
+    '0':
+      objective: 'anpc interact'
+      condition:
+        id: 'test1'
+        type: 'PLAYER'
+      addon:
+        # 对该条目进行任务组依赖
+        # 此处填写依赖的任务组名
+        # 多个任务组请用";"分割
+        depend: group:条目依赖
+      agent:
+        continued: |
+          tell color *"已完成条目0"
+    '1':
+      objective: 'anpc interact'
+      condition:
+        id: 'test2'
+        type: 'PLAYER'
+      agent:
+        continued: |
+          tell color *"已完成条目1"
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6任务组依赖 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6任务组依赖 - 已完成" by 10 20 10
+任务依赖:
+  meta:
+    name: '任务依赖'
+    type: 'Adyeshach'
+  task:
+    '0':
+      objective: 'anpc interact'
+      condition:
+        id: 'test1'
+        type: 'PLAYER'
+      addon:
+        # 对该条目进行任务依赖
+        # 此处填写依赖的任务名
+        # 多个任务请用";"分割
+        depend: 条目依赖
+      agent:
+        continued: |
+          tell color *"已完成条目0"
+    '1':
+      objective: 'anpc interact'
+      condition:
+        id: 'test2'
+        type: 'PLAYER'
+      agent:
+        continued: |
+          tell color *"已完成条目1"
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6任务依赖 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6任务依赖 - 已完成" by 10 20 10
+条目依赖:
+  meta:
+    name: '条目依赖'
+    type: 'Adyeshach'
+  task:
+    '0':
+      objective: 'anpc interact'
+      condition:
+        id: 'test1'
+        type: 'PLAYER'
+      agent:
+        continued: |
+          tell color *"已完成条目0"
+    '1':
+      objective: 'anpc interact'
+      condition:
+        id: 'test2'
+        type: 'PLAYER'
+      agent:
+        continued: |
+          tell color *"已完成条目1"
+    '2':
+      objective: 'anpc interact'
+      condition:
+        id: 'test3'
+        type: 'PLAYER'
+      addon:
+        # 单个任务内条目依赖
+        depend: 0
+      agent:
+        continued: |
+          tell color *"已完成条目2"
+    '3':
+      objective: 'anpc interact'
+      condition:
+        id: 'test4'
+        type: 'PLAYER'
+      addon:
+        # 多个个任务内条目依赖
+        depend: 1;2
+      agent:
+        continued: |
+          tell color *"已完成条目3"
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6条目依赖 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6条目依赖 - 已完成" by 10 20 10
+右键NPC:
+  meta:
+    name: '右键NPC'
+    type: 'Adyeshach'
+  task:
+    '0':
+      objective: 'anpc interact'
+      condition:
+        id: 'WIKI示例'
+  addon:
+    party:
+      # 是否共享任务给队员
+      share: true
+      # 成员数量要求
+      # 只有在队伍中且成员数量达到要求时才可以继续任务
+      require-members: '1'
+      # 是否仅限队长共享该任务
+      share-only-leader: true
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6右键NPC - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6右键NPC - 已完成" by 10 20 10
+右键NPC:
+  meta:
+    name: '右键NPC'
+    type: 'Adyeshach'
+  task:
+    '0':
+      objective: 'anpc interact'
+      condition:
+        id: 'WIKI示例'
+      addon:
+        party:
+          # 允许队员完成此条目的目标
+          continue: true
+          # 成员数量要求
+          # 只有在队伍中且成员数量达到要求时才可以继续任务
+          require-members: '1'
+  addon:
+    party:
+      # 是否共享任务给队员
+      share: true
+      # 成员数量要求
+      # 只有在队伍中且成员数量达到要求时才可以继续任务
+      require-members: '1'
+      # 是否仅限队长共享该任务
+      share-only-leader: true
+  agent:
+    accepted: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6右键NPC - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6右键NPC - 已完成" by 10 20 10
+信标导航:
+  meta:
+    name: '信标导航'
+    type: 'Adyeshach'
+  task:
+    '0':
+      objective: 'anpc interact'
+      condition:
+        id: 'WIKI示例'
+        type: 'PLAYER'
+  addon:
+    track:
+      # 导航的位置中心
+      center: "adyeshach WIKI示例"
+      # 导航时触发的信息
+      message: "&7正在追踪目标[WIKI示例],点击以取消导航."
+      # 信标导航的选项
+      beacon-option:
+        # 组成信标光柱的粒子类型
+        type: "CLOUD"
+        # 是否固定粒子柱位置
+        # true 粒子柱仅显示在目标地点
+        # false 粒子柱会跟随玩家的移动而移动
+        fixed: false
+        # 粒子柱的宽度
+        size: 0.1
+        # 组成粒子柱粒子数量
+        # 此值越大,组成的粒子柱越明显(会导致部分低配置电脑的客户端卡顿)
+        count: 800
+        # 粒子柱的刷新周期(以tick作为单位)
+        # 20tick = 1秒
+        period: 10
+        # 可见范围
+        # 此项常搭配 "fixed: true" 使用
+        distance: 10
+      # 是否启用信标导航(以粒子形成的类信标光柱)
+      beacon: true
+      landmark: false
+      navigation: false
+      scoreboard: false
+  agent:
+    # quest track 是必须添加的Kether动作, 用于在任务开始时触发导航
+    accepted: |
+      quest track
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6信标导航 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6信标导航 - 已完成" by 10 20 10
+地标导航:
+  meta:
+    name: '地标导航'
+    type: 'Adyeshach'
+  task:
+    '0':
+      objective: 'anpc interact'
+      condition:
+        id: 'WIKI示例'
+        type: 'PLAYER'
+  addon:
+    track:
+      # 导航的位置中心
+      center: "adyeshach WIKI示例"
+      # 导航时触发的信息
+      message: "&7正在追踪目标[WIKI示例],点击以取消导航."
+      # 地标导航的选项
+      landmark-option:
+        # 导航模板
+        # 使用 "\n"表示换行
+        content: "&a[{name}]\n&f剩余 {distance} 米"
+        # 也可使用下列模板:
+        # content: |
+        #   &a[{name}]
+        #   &f剩余 {distance} 米
+
+        # 导航距离玩家实体的距离
+        distance: 3
+      beacon: false
+      # 是否启用地标导航
+      landmark: true
+      navigation: false
+      scoreboard: false
+  agent:
+    # quest track 是必须添加的Kether动作, 用于在任务开始时触发导航
+    accepted: |
+      quest track
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6地标导航 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6地标导航 - 已完成" by 10 20 10
+粒子导航:
+  meta:
+    name: '粒子导航'
+    type: 'Adyeshach'
+  task:
+    '0':
+      objective: 'anpc interact'
+      condition:
+        id: 'WIKI示例'
+        type: 'PLAYER'
+  addon:
+    track:
+      name: "test"
+      # 导航的位置中心(y需要>0)
+      center: "world 16 65 -41"
+      # 导航时触发的信息
+      message: "&7正在追踪目标[WIKI示例],点击以取消导航."
+      navigation-option:
+        # 导航路径渲染类型(使用时需编辑对应的类型选项)
+        # POINT 点
+        # ARROW 箭头
+        type: "ARROW"
+        point:
+          # 粒子种类
+          type: SOUL
+          # 点的扩散范围[当值相同(>0)时形成的形状为球]
+          size:
+            # x扩散范围
+            x: 0
+            # y扩散范围
+            y: 0
+          # 粒子y轴偏移值
+          y: 0
+          # 粒子速度
+          speed: 1
+          # 粒子数量
+          count: 60
+          # 粒子更新周期
+          period: 10
+        arrow:
+          # 粒子种类
+          type: SOUL
+          # 粒子y轴偏移值
+          y: 0.9
+          # 箭头角度
+          angle: 45
+          # 箭头长度
+          len: 0.5
+          # 箭头速度
+          speed: 1
+          # 粒子数量
+          density: 12
+          # 粒子更新周期
+          period: 40
+        # 是否在主线程中运行(默认开启)
+        # true 是
+        # false 否
+        sync: true
+        # 最远距离
+        distance: 64
+      beacon: false
+      landmark: false
+      # 是否启用粒子导航(以粒子形成的类信标光柱)
+      navigation: true
+      scoreboard: false
+  agent:
+    # quest track 是必须添加的Kether动作, 用于在任务开始时触发导航
+    accepted: |
+      quest track
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6粒子导航 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6粒子导航 - 已完成" by 10 20 10
+
+计分板导航:
+  meta:
+    name: '计分板导航'
+    type: 'Adyeshach'
+  task:
+    '0':
+      objective: 'anpc interact'
+      condition:
+        id: 'WIKI示例'
+        type: 'PLAYER'
+      addon:
+        track:
+          name: "计分板导航"
+          message: ''
+          description: "&a与WIKI示例交互 &f(&e{{ quest progress value task 0 }}&f/&e5&f)"
+          scoreboard: true
+    '1':
+      objective: 'anpc interact'
+      condition:
+        id: 'WIKI示例2'
+        type: 'PLAYER'
+      addon:
+        track:
+          message: ''
+          description: "&a与WIKI示例2交互 &f(&e{{ quest progress value task 0 }}&f/&e5&f)"
+          scoreboard: true
+  addon:
+    track:
+      name: "计分板导航"
+      # 导航的位置中心
+      center: "adyeshach WIKI示例"
+      # 导航时触发的信息
+      message: "&7正在追踪目标[WIKI示例],点击以取消导航."
+      beacon: false
+      landmark: false
+      navigation: false
+      # 是否启用计分板导航
+      scoreboard: true
+  agent:
+    # quest track 是必须添加的Kether动作, 用于在任务开始时触发导航
+    accepted: |
+      quest track
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6计分板导航 - 已接受" by 10 20 10
+    completed: |
+      title color *"&7- &8[&aWIKI示例&8] &7-" subtitle color *"&6计分板导航 - 已完成" by 10 20 10
+
+多种导航类型可以混用，使用导航类型前建议编辑其对应选项
+
+玩家使用navigation导航时，玩家距离导航点距离超出distance限制时导航类型会更改为beacon类型，进入distance限制范围后会自动还原
+
+
+#         Powered by TabooLib 6.0         #
+
+
+database:
+  # 数据加载延迟
+  # 玩家进入服务器后多久开始加载数据
+  join-select-delay: 20
+  # 数据索引类型
+  # 在投入生产环境后不可修改
+  # 可用：NAME、UUID
+  user-index: UUID
+  # 数据储存类型
+  # 可用: LOCAL, SQL
+  use: LOCAL
+  # 数据储存配置
+  source:
+    SQL:
+      host: localhost
+      port: 3306
+      user: root
+      password: root
+      database: test
+      table: chemdah
+
+# 默认状态显示配置
+default-stats:
+  # 停留时间
+  stay: 100
+  # 条类型
+  # 可用: SOLID, SEGMENTED_6, SEGMENTED_10, SEGMENTED_12, SEGMENTED_20
+  style: SOLID
+  # 条颜色
+  # 可用: PINK, BLUE, RED, GREEN, YELLOW, PURPLE, WHITE
+  color: WHITE
+  # 条文本
+  content: '&3[{name}] &7{value}/{target} &f[{percent}%]'
+
+# 默认追踪配置
+default-track:
+  # 开始追踪时显示信息
+  message: '&7Tracking &3[{name}]&7... Click to cancel.'
+  # 信标（粒子光柱）
+  beacon:
+    # 是否启用
+    value: true
+    # 粒子类型
+    type: CLOUD
+    # 粒子宽度
+    size: 0.05
+    # 粒子密度
+    count: 500
+    # 最近可见距离
+    distance: 32
+    # 更新间隔
+    period: 2
+    # 是否固定到终点位置
+    fixed: false
+  # 地标
+  landmark:
+    # 是否启用
+    value: true
+    # 文本
+    content:
+      - '&a{name}'
+      - '&f({distance}m)'
+    # 显示距离
+    distance: 3
+  # 导航
+  navigation:
+    # 是否启用
+    value: true
+    # 是否在主线程中运算
+    # 快速相应但会产生一些性能损耗
+    sync: true
+    # 显示形式
+    # 可用：POINT、ARROW
+    type: POINT
+    # 最远距离
+    distance: 64
+    # POINT 配置
+    point:
+      # 粒子类型
+      type: CRIT
+      # 距离地面高度
+      y: 0
+      # 粒子大小
+      size:
+        x: 0.2
+        y: 0.2
+      # 粒子密度
+      count: 20
+      # 粒子速度
+      speed: 1
+      # 更新间隔
+      period: 60
+    # ARROW 配置
+    arrow:
+      # 粒子类型
+      type: DRIP_LAVA
+      # 距离地面高度
+      y: 0.2
+      # 密度
+      density: 12
+      # 长度
+      len: 0.5
+      # 角度
+      angle: 45
+      # 粒子速度
+      speed: 1
+      # 更新间隔
+      period: 100
+  # 记分板
+  scoreboard:
+    # 是否启用
+    value: true
+    # 自动换行长度
+    length: 64
+    # 文本
+    content:
+      - '&6&lTRACKING'
+      - - ''
+        - ' &e{name}:'
+        - ' &f{description}'
+      - ''
+
+theme-chat:
+  format:
+    - ' '
+    - ' {title}:'
+    - ' '
+    - '  {npc_side}'
+    - ' '
+    - '  {reply}'
+    - ' '
+  format-line:
+    default:
+      single: '&f" &7{text}&r &f"'
+      top: '&f" &7{text}&r'
+      body: '  &7{text}&r'
+      bottom: '  &7{text}&r &f"'
+    main:
+      single: '&e* {text}'
+      top: '&e* {text}'
+      body: '  &e{text}'
+      bottom: '  &e{text}'
+  # 回复格式
+  select:
+    # 标准
+    reply:
+      1: '&7▶ &f&n{player_side}&r &8(&6&lF&8)'
+      0: '&8▶ &7{player_side}&r   &r'
+    # 曾被选择
+    reply-selected:
+      1: '&7▶ &7&n{player_side}&r &8(&6&lF&8)'
+      0: '&8▶ &8{player_side}&r   &r'
+    # 自定义
+    reply-custom:
+      main:
+        1: '&6▶ &7&n{player_side}&r &8(&6&lF&8)'
+        0: '&7▶ &8{player_side}&r   &r'
+    sound:
+      name: ENTITY_EXPERIENCE_ORB_PICKUP
+      p: 2
+      v: 0
+  sound:
+    name: ENTITY_ITEM_PICKUP
+    p: 1
+    v: 0
+  # NPC 正在发言时显示回复内容
+  talking: '    &8...'
+  # 是否启用动画
+  animation: true
+  # 动画播放速度
+  speed: 1
+  # 空行
+  space-line: 30
+  # 是否在回复上以悬浮字形式显示回复文本
+  hover-text: true
+  # 是否启用滚轮切换回复
+  use-scroll: false
+  # 单行回复
+  single-line:
+    # 是否启用
+    enable: true
+    # 单行回复自动换行长度
+    auto-swap: 36
+    # 单行回复每个回复之间的间隔文本
+    reply-separator: ' '
+  # 移动关闭对话的判定距离
+  close-distance: 0.5
+  # 自动空行填充
+  # 如果 NPC 发言内容与回复行数不足 5 行，则自动填充空行，仅在多行模式下有效
+  space-filling: 5
+
+# 不推荐使用
+theme-chest:
+  ui:
+    title: 'Talking with {title}...'
+    rows: 'max ceil math add [ math div [ &size 5 ] 2 ] 3'
+  npc-side:
+    item:
+      material: book
+      name: '&f {title}'
+      lore:
+        - ' '
+        - ' &7{npc_side} '
+        - ' '
+    slot: 10
+  player-side:
+    item:
+      material: paper
+      name: '&7{index}. &f{player_side}'
+    item-selected:
+      material: paper
+      name: '&8{index}. &7{player_side}'
+    slot:
+      - 12
+      - 13
+      - 14
+      - 15
+      - 16
+      - 21
+      - 22
+      - 23
+      - 24
+      - 25
+      - 30
+      - 31
+      - 32
+      - 33
+      - 34
+      - 39
+      - 40
+      - 41
+      - 42
+      - 43
+  sound:
+    name: ENTITY_ITEM_PICKUP
+    p: 1
+    v: 0
+group:
+	# 分组名
+  example-quest:
+	  # 任务名
+    - '10_diamond_ore'
+    # 任务类型:类型名
+    # 此处的类型名即为任务内填写的meta.type节点
+    - 'type:L2'
+example.yml
+__option__:
+  theme: 'chat'
+  title: 'Mr.{name}'
+
+conversation_switch_0:
+  npc id: 'adyeshach test1'
+  when:
+    - if: check player level < 10
+      open: conversation_0
+    - if: true
+      run: tell Oops!
+
+conversation_0:
+  npc id: 'adyeshach test2'
+  npc:
+    - 'Hi! {{ sender }}.'
+    - 'I''m conversation tester for Chemdah.'
+  player:
+    - reply: 'Hi!'
+      then: |
+        goto conversation_0_1
+    - if: permission admin
+      reply: 'You know Mr.Black?'
+      then: |
+        talk "Yes, I know him very well."
+
+conversation_0_1:
+  npc:
+    - 'Look! A new conversation structure.'
+  player:
+    - reply: 'Cool!'
+      then: |
+        set game true
+        goto conversation_0_2
+    - reply: 'Not bed.'
+      then: |
+        talk "All right, see you later."
+
+conversation_0_2:
+  condition: check &game not null
+  npc:
+    - 'Here! Choose a number please.'
+  player:
+    - reply: '{{ &chooseA }}?'
+      then: |
+        set choose to &chooseA
+        goto conversation_0_3
+    - reply: '{{ &chooseB }}?'
+      then: |
+        set choose to &chooseB
+        goto conversation_0_3
+    - reply: '{{ &chooseC }}?'
+      then: |
+        set choose to &chooseC
+        goto conversation_0_3
+  agent:
+    begin: |
+      set chooseA to round random 10
+      set chooseB to round random 10
+      set chooseC to round random 10
+
+conversation_0_3:
+  player:
+    - if: get win
+      reply: 'Yeah!'
+      then: |
+        talk "Good bye!"
+    - if: not &win
+      reply: 'Oh! Jesus.'
+      then: |
+        talk "Don't worry."
+  agent:
+    begin: |
+      if check &choose is null then {
+        tell color "&c[Error] &7no choosed."
+        cancel
+      } else {
+        set number to round random 10
+        set win to check &choose > &number
+        if &win then {
+          talk "{{ &choose }}!"
+          talk "You win! number is {{ &number }}"
+        } else {
+          talk "{{ &choose }}?"
+          talk "You lose! number is {{ &number }}"
+        }
+      }
+    refuse: |
+      talk "All right, see you later."
+
+example.yml作为Chemdah插件自带的对话演示案例，附带的内容及语法是极为丰富的。
+
+本文将逐层解析该配置文件的结构及功能，并对其内容进行拆分和关联。
+最后，将通过重组拆解出的结构，重新构建一个对话文件以作为教学示例。
+配置文件结构拆解
+该配置文件分为基础的对话选项部分，对话检测部分，以及对话部分。
+下文将会把这三个部分合为两个部分。
+依照顺序简称为选项、对话。
+其中对话包括对话选择器、对话内容。
+__option__ 选项
+在该配置文件中，首先列出的便是选项部分。
+__option__:
+  theme: 'chat'
+  title: 'Mr.{name}'
+其中 __option__ 作为选项标识符，对于修改对话选项起关键作用。
+theme 对话类型
+而 theme 则用于选择对话展示类型。
+值得一提的是，Chemdah在插件中为使用者内置了两种展示类型；
+分别是 chat(聊天框对话) 及 chest(箱子界面对话)，然而 chest(箱子界面对话) 常用于 chat(聊天框对话) 无法适配或对话被其他插件管控(Chest 插件覆盖 箱子界面对话  展示)的应用情境下。
+theme 对话类型 展示
+Chat 聊天框对话 展示
+Chat 聊天框对话 展示
+
+Chest 箱子界面对话  展示
+
+
+
+Chest 插件覆盖 箱子界面对话  展示
+
+此图由@剑心(Q908757689)服务器提供
+title 对话标题
+此处的 title 常用于展示玩家的对话目标，一般填写的是 NPC的名称 或 根据剧情而变化的NPC名称，此处可填写 {name} 变量替代 NPC名称。
+同时title的基础格式可以在 Chemdah/core/conversation.yml 内进行修改。
+title 对话标题 展示
+Chat Title 聊天框对话标题 展示
+
+
+此处运用的便是上文提及的 {name} 变量
+Chest Title 箱子界面对话标题 展示
+
+箭头处运用的便是上文提及的 {name} 变量
+而方框处则是 Chemdah/core/conversation.yml 内 title 的基础格式
+
+global-flags 全局标签
+虽然插件自带的对话示例文件未包含该部分，但在插件源码路径(ink.ptms.chemdah.core.conversation.ConversationManager)
+及 官方对话编辑器 内都有提及该部分。
+[请注意，官方对话编辑器 中将 LOOK_PLAYER 标签 错编为 LOOK_PLATER，使用时请注意更改]
+接下来将陈列所有全局标签及其作用。
+global-flags 全局标签 格式
+使用时请根据下列介绍取消对应注释以使用
+__option__:
+  theme: 'chat'
+  title: 'Mr.{name}'
+  global-flags:
+    # - 'FORCE_LOOK'
+    # - 'FORCE_DISPLAY'
+    # - 'LOOK_PLAYER'
+    # - 'NO_EFFECT'
+    # - 'NO_EFFECT:SLOW'
+    # - 'NO_EFFECT:BLINDNESS'
+    # - 'NO_EFFECT:SOUND'
+    # - 'NO_EFFECT:PARTICLE'
+    # - 'NO_MOVE'
+    # - 'NO_SKIP'
+FORCE_LOOK 强制目视
+该标签用于在触发对话时，强制让玩家目视对话目标NPC。
+此效果也可由指令触发:
+ch api conversation npc <玩家> <NPC> look
+可与标签 FORCE_DISPLAY, NO_MOVE, NO_SKIP 三者结合达成无法跳过的对话。
+该功能常用于纠正玩家的视线，以便后续 播放动画 或 展示部分效果。
+同时此功能由指令触发时，玩家会强制目视NPC的方向，可用于制作带有藏匿元素的NPC。
+FORCE_LOOK 强制目视 展示
+
+FORCE_DISPLAY 强制对话
+该标签用于在触发对话时，强制让玩家完成对话。
+正常情况下，玩家在触发对话后进行大范围移动会打断对话进行。
+使用该标签后，玩家无法再通过大范围移动打断对话进行。
+FORCE_DISPLAY 强制对话 展示
+
+LOOK_PLAYER 目视玩家
+该标签用于在触发对话时，强制让NPC目视玩家进行对话。
+当对话结束或中止后，NPC会强制恢复原视角。
+LOOK_PLAYER 目视玩家 展示
+
+NO_EFFECT 取消特效
+该标签用于在触发对话时，强制取消某种特定特效或所有特效效果。
+该标签分为一个父标签:
+NO_EFFECT
+及四个子标签:
+NO_EFFECT:SLOW
+NO_EFFECT:BLINDNESS
+NO_EFFECT:SOUND
+ NO_EFFECT:PARTICLE
+四个子标签可分别独立使用。
+为保持文件格式规范，同时减少后续维护难度，编者强烈建议在使用父标签时，不填写任何子标签。
+注：此处的父子标签为编者提出，仅为用于减低讲解难度。
+接下来我们将从四个子标签作为起点开始讲解。
+NO_EFFECT:SLOW 取消缓慢药水效果
+该子标签用于在触发对话时，强制取消玩家的缓慢药水效果。
+触发对话时的缓慢药水效果，仅用于缩短玩家相较于NPC的视距长短，缓慢药水效果仅用于增强玩家的沉浸体验。
+使用该子标签不会对玩家对话产生任何实质性影响。
+NO_EFFECT:SLOW 取消缓慢药水效果 展示
+未使用子标签:
+
+使用子标签:
+
+NO_EFFECT:BLINDNESS 取消失明药水效果
+该子标签用于在触发对话时，强制取消玩家的失明药水效果。
+触发对话时的缓慢药水效果，仅用于暗沉玩家的人称视角，减少玩家的可见范围，因此失明药水效果仅用于增强玩家的沉浸体验。
+使用该子标签不会对玩家对话产生任何实质性影响。
+NO_EFFECT:BLINDNESS 取消失明药水效果 展示
+未使用子标签:
+
+使用子标签:
+
+NO_EFFECT:SOUND 取消触发音效效果
+该子标签用于在触发对话时，强制取消触发的音效效果。
+触发对话时的音效效果，仅用于提示对话已开始，且不会取消玩家切换回复选项的音效效果。
+该 音效效果 及 玩家切换回复选项的音效效果 可以在 Chemdah/core/conversation.yml 内进行修改。
+使用该子标签不会对玩家对话产生任何实质性影响。
+NO_EFFECT:SOUND 取消触发音效效果 展示
+未使用子标签:
+
+使用子标签:
+
+NO_EFFECT:PARTICLE 取消触发粒子效果
+该子标签用于在触发对话时，强制取消触发的粒子效果。
+触发对话时的粒子效果，产生于目标对话NPC头顶，仅用于提示对话已开始。
+使用该子标签不会对玩家对话产生任何实质性影响。
+NO_EFFECT:PARTICLE 取消触发粒子效果 展示
+未使用子标签:
+
+使用子标签:
+
+NO_EFFECT 取消所有特效
+作为上述四个子标签的父标签，该标签用于在触发对话时，仅会强制取消 NO_EFFECT:SLOW NO_EFFECT:BLINDNESS 所取消的特效效果。
+NO_EFFECT 取消所有特效 展示
+未使用父标签:
+
+使用父标签:
+
+NO_MOVE 取消移动
+该标签用于触发对话时，强制锁定玩家的位置。
+当该标签启用时，玩家将无法移动；在BukkitAPI下，玩家的移动包括坐标更改及视角pitch及yaw的变更，因此启用该标签会使玩家的视角强制锁定在同一位置。
+该功能常用于展示特效或播放特定动画。
+NO_MOVE 取消移动 展示
+
+NO_SKIP 取消跳过
+该标签用于触发对话时，强制完成对话过程的播放。
+当该标签启用时，玩家将无法通过对话按钮跳过打字机效果。
+该功能常用于需要玩家留意的剧情的展示。
+NO_SKIP 取消跳过 展示
+
+conversation 对话
+为便于讲解，本文将分别讲解对话选择器与对话内容的结构，并将二者结合讲解。
+对话选择器
+conversation_switch_0:
+  npc id: 'adyeshach test1'
+  when:
+    - if: check player level < 10
+      open: conversation_0
+    - if: true
+      run: tell Oops!
+此处的 conversation_switch_0 为用于选择的对话条目，需在全局中保持唯一，这意味着它是不可重复的。
+NPC ID 实体触发器
+npc id: 'adyeshach test1'
+npc id 作为识别触发对话NPC的关键项，为 when 下的进行判断的对话起前置条件作用。当交互的对象是 npc id 内指定的特定实体时，when 下的判断才会开始运行。
+Chemdah 为我们内置了多种实体触发器，以便于我们快速地将目标实体作为对话目标。
+其中包括了插件Adyeshach、Citizens、Mythicmobs，同时也提供了名为 minecraft 的实体触发器，以用于选定其他插件生成的实体。
+以下是实体触发器的种类及写法：
+npc id 实体触发器
+ - adyeshach npc_id
+ - citizens npc_id
+ - mythicmobs mob_id
+ - minecraft 实体名称 & 实体类型
+一般情况下 minecraft 触发器可以选定其他插件生成的实体，除了 Adyeshach
+Adyeshach 插件实体触发器:
+npc id: 'adyeshach test1'
+Citizens 插件实体触发器:
+npc id: 'citizens 0'
+Mythicmobs 插件实体触发器:
+npc id: 'mythicmobs test'
+Minecraft 通用实体触发器:
+npc id: 'minecraft pig'
+TODO
+when 对话选择器
+when:
+- if: check player level < 10
+open: conversation_0
+- if: true
+run: tell Oops!
+以上这个例子中，when 后的多个 - 表示多个条件的链式使用，在yaml中：
+- if: check player level < 10
+open: conversation_0
+我们将这样的格式成为一个数组，每个元素都是一个条件和对应的操作。
+而在对话检测中，便是这样使用多个条件的链式以完成对话流程的。
+其中 if 的条件表达式使用了 TabooLib 提供的脚本语句 Kether 进行表达式检测。
+
+Tips: 条件的检测是自上而下的。
+
+此处不再讲解如何使用 Kether 进行条件检测，如有需要请查阅：
+判断语句 If & Else
+https://www.yuque.com/sacredcraft/kether/action-if-else
+当通过条件检测时，Chemdah会为我们进行我们填写下的对应的操作。
+由以上提供的操作动作，我们可以得知，操作类型分为两种，分为 open 和 run。
+注：官方编辑器将 open 命名为 跳转，将 run 命名为 运行，下文将依照此命名讲解。
+Open 跳转
+跳转，用作对话跳转的。
+open: 对话条目
+open: Kether动作
+以上是 open 的用法举例。
+编者建议，在编写对话跳转时，将条件及对应的跳转按顺序排列，同时将需跳转的对话置于对话选择器所在的同一文件中，便于后续维护。
+Run 运行
+运行，用作触发Kether动作。
+run: Kether 动作
+以上是 run 的用法举例。
+该操作常用于纯粹的运行 Kether 语句。
+
+
+对话内容
+conversation_0:
+  npc id: 'adyeshach test2'
+  npc:
+    - 'Hi! {{ sender }}.'
+    - 'I''m conversation tester for Chemdah.'
+  format: generic
+  player:
+    - reply: 'Hi!'
+      then: &ab |
+        goto conversation_0_1
+    - reply: 'Hi! (copy)'
+      then: *ab
+    - if: permission admin
+      reply: 'You know Mr.Black?'
+      type: main
+      then: |
+        talk "Yes, I know him very well."
+
+conversation_0_1:
+  npc:
+    - 'Look! A new conversation structure.'
+  format: generic
+  player:
+    - reply: 'Cool!'
+      then: |
+        set game true
+        goto conversation_0_2
+    - reply: 'Not bed.'
+      then: |
+        talk "All right, see you later."
+
+conversation_0_2:
+  condition: check &game not null
+  npc:
+    - 'Here! Choose a number please.'
+  format: generic
+  player:
+    - reply: '{{ &chooseA }}?'
+      then: |
+        set choose to &chooseA
+        goto conversation_0_3
+    - reply: '{{ &chooseB }}?'
+      then: |
+        set choose to &chooseB
+        goto conversation_0_3
+    - reply: '{{ &chooseC }}?'
+      then: |
+        set choose to &chooseC
+        goto conversation_0_3
+  agent:
+    begin: |
+      set chooseA to round random 10
+      set chooseB to round random 10
+      set chooseC to round random 10
+
+conversation_0_3:
+  player:
+    - if: get win
+      reply: 'Yeah!'
+      then: |
+        talk "Good bye!"
+    - if: not &win
+      reply: 'Oh! Jesus.'
+      then: |
+        talk "Don't worry."
+  agent:
+    begin: |
+      if check &choose is null then {
+        tell color "&c[Error] &7no chose."
+        cancel
+      } else {
+        set number to round random 10
+        set win to check &choose > &number
+        if &win then {
+          talk "{{ &choose }}!"
+          talk "You win! number is {{ &number }}"
+        } else {
+          talk "{{ &choose }}?"
+          talk "You lose! number is {{ &number }}"
+        }
+      }
+    refuse: |
+      talk "All right, see you later."
+鉴于 example.yml 给予的对话内容示例中使用了对初学者而言较为复杂的 Kether 语句，本文将从基础的对话内容的结构开始讲解。
+基础示例
+基础示例_1:
+  npc:
+    - '你好.{{ sender }}'
+    - '这是第一条对话'
+  player:
+    - reply: '跳转到 基础示例_2'
+      then: |
+        goto 基础示例_2
+    - reply: '结束对话'
+      then: |
+        close
+基础示例_2:
+  npc:
+    - '这是第二条对话'
+  player:
+    - reply: '执行 Kether 动作'
+      then: |
+        tell 1
+        command inline "spawn {{ sender }}" as console
+    - reply: '结束对话'
+      then: |
+        close
+NPC 对话部分 展示
+
+
+NPC 对话部分
+  npc:
+    - '你好.{{ sender }}'
+    - '这是第一条对话'
+上述是NPC在对话中将展示给玩家的内容，其中 {{ sender }} 的功能类似于变量 %player_name%，用于解析玩家名称。
+玩家 回复部分
+  player:
+    - reply: '跳转到 基础示例_2'
+      then: |
+        goto 基础示例_2
+    - reply: '结束对话'
+      then: |
+        close
+玩家回复部分同对话选择器一般，分为回复的内容及回复后的操作，且回复后的操作完全由 Kether 语句构成。
+上述内容中的 goto 基础示例_2 及 close 便是来自 Chemdah 提供的 Kether 语句，用于跳转对话。
+展开 / 收起详情 Goto 语句
+Goto
+
+跳转到特定对话结构中。
+
+goto {token}
+
+goto conversation_0
+由 Chemdah 提供的私有动作
+展开 / 收起详情 Close 语句
+Close
+
+作用于对话的脚本代理中，可结束对话。
+
+close
+
+close
+由 Chemdah 提供的私有动作
+10_diamond_ore:
+  meta:
+    name: Break Diamonds
+    type: L1
+  task:
+    0:
+      objective: block break
+      condition:
+        material: diamond_ore
+      goal:
+        amount: 10
+      addon:
+        stats:
+          visible: true
+    1:
+      objective: player data
+      goal:
+        key: test
+        value: 10
+      addon:
+        reset-data-on-accepted: true
+        optional: true
+  addon:
+    ui:
+      icon: iron_pickaxe
+      description: '&7Mine &3[10 Diamond Ores] &7anywhere.'
+  agent:
+    accepted: |
+      tell colored "&3[Break Diamonds] &7accepted!"
+    completed: |
+      tell colored "&3[Break Diamonds] &7completed!"
+example.yml 作为 Chemdah 内置的任务示例，对于初学者来说也是极为容易的。
+Chemdah 的任务结构相较于其他插件而言，更为简洁和直观。
+配置文件结构拆解
+接下来是一个简单的示例：
+10_diamond_ore:
+  meta:
+    name: Break Diamonds
+    type: L1
+  task:
+    0:
+      objective: block break
+      condition:
+        material: diamond_ore
+      goal:
+        amount: 1
+这便是一个基础的任务文件，让我们自上而下地对它进行分析。
+任务标识符
+首先填写的内容是 任务标识符，即 10_diamond_ore。其在 Chemdah 中对任务起区分作用，因此 任务标识符 具有唯一性，不可重复。
+插件重载时会重新读取任务，当我们使用插件指令 /chemdah quest 时，Chemdah会自动将已读取成功的任务以 任务标识符 的形式为我们展示，以便于补全指令。
+示例：
+
+Meta
+Meta 分为两个部分：name(名称)、type(类型)。
+Name 名称
+  meta:
+    name: Break Diamonds
+此处所填写的名称即为 Break Diamonds。
+虽然名称的填写规则很宽松，但编者建议，在填写名称时自行协定一套命名规则。
+Type 类型
+  meta:
+    type: L1
+此处所填写的类型即为 L1，类型可用于任务组分类及 Chemdah 自带的UI菜单系统。
+类型与名称一般，没有强制的命名规则，仅需按需求分类即可。
+
+Task
+  task:
+    0:
+      objective: block break
+      condition:
+        material: diamond_ore
+      goal:
+        amount: 1
+task作为任务不可或缺的部分，在任务文件中起确定任务目标的作用。
+任务条目
+任务条目用于分隔多个任务目标，而此处的 0 即为 任务条目。
+objective 任务类型
+objective 用于选取任务类型，单个任务条目内仅可使用一个 objective。
+多个任务条目可使用相同的 objective，用于以形成阶段性任务。
+condition 任务条件
+condition 在任务中是可有可无的，当其生效时，常用于限制特定条件。
+各任务类型的 condition 各不相同，因此本文不再赘述 condition 的内容。
+如有需求，请移步 任务示例 查看。
+goal 任务目标
+值得一提的是，大部分任务类型都支持在 goal 中进行 Kether 代理($)。
+以下是进行 Kether 代理的例子：
+Kether 代理
+https://www.yuque.com/yuqueyonghunpydoy/chemdah/uogu112pvgmvmqg6
+其余 goal 的相关案例也在 任务示例 中有相关讲解，此处便不再讲解。
+
+Addon
+Addon 是任务的组件部分，常用于对任务的进行各项限制。
+Addon 可用于任务条目及任务全局，但条目和全局的组件存在些许差异。
+本处仅介绍各组件的作用，详情用法请移步任务进阶。
+条目组件
+条目组件内包含的独有内容仅可在条目内使用。
+条目组件
+
+depend 依赖
+依赖，顾名思义是用于识别前置任务是否完成的。
+当填写的前置任务尚未完成时，即使玩家完成了该条目的条件，依赖仍会控制条目无法完成。
+party 队伍
+队伍，用于为玩家开启组队任务，同时决定任务目标是否会同步给队伍中的所有玩家。
+可配置只有在队伍中且成员数量达到要求时才可以继续任务。
+该组件需要额外插件，详情请查看 Chemdah/module/party.yml 内的可用插件。
+restart 重置
+重置，用于在特定时刻重置任务数据。
+当 Kether 动作当结果为 true 时重置任务数据。
+stats 状态
+状态，用于任务或任务条目的进度显示。
+具体展现形式为 BossBar 血条。
+timeout 超时
+超时，用于对任务进行完成时间的限制。
+当到达限制时间后，任务失败。
+track 追踪
+追踪，用于对任务目标进行导航或信息提示。
+追踪包含多种目标导航方式。
+optional 可选
+可选，用于对任务条目的完成进行可选化操作。
+全局组件
+全局组件
+
+automation 自动化
+自动化，指程序执行特定任务的过程。
+在 Chemdah 中，该功能用于自动接受任务或计划任务。
+control 管控
+管控，用于对特定任务进行限制。
+管控限制包括共存限制、重复限制、冷却限制三类。
+depend 依赖
+依赖，顾名思义是用于识别前置任务是否完成的。
+当填写的前置任务尚未完成时，即使玩家完成了该任务的所有条目，依赖仍会控制任务无法完成。
+party 队伍
+队伍，用于为玩家开启组队任务，同时决定任务目标是否会同步给队伍中的所有玩家。
+可配置只有在队伍中且成员数量达到要求时才可以继续任务。
+该组件需要额外插件，详情请查看 Chemdah/module/party.yml 内的可用插件。
+restart 重置
+重置，用于在特定时刻重置任务数据。
+当 Kether 动作当结果为 true 时重置任务数据。
+stats 状态
+状态，用于任务或任务条目的进度显示。
+具体展现形式为 BossBar 血条。
+timeout 超时
+超时，用于对任务进行完成时间的限制。
+当到达限制时间后，任务失败。
+track 追踪
+追踪，用于对任务目标进行导航或信息提示。
+追踪包含多种目标导航方式。
+ui 任务页面
+任务页面，用于展示指定任务类型及任务情况。
+常作为任务视图使用。
+
+Agent
+Agent 是任务的代理部分，常用于在触发任务流程时进行操作。
+任务流程包括：接受、失败、完成、重新开始。
+而任务流程又囊括了不同变种，同时兼容三个触发目标。
+本篇将会从触发目标出发进行讲解。
+触发目标
+@ all 全体玩家
+@ self 玩家自身
+@ party 玩家队伍
+接受
+Chemdah 中，接受的类型是十分丰富的。
+亦或者说，Chemdah 为用户提供了多个接受触发动作的代理。
+这其中包括：accept、accpeted、accept cancelled。
+
+
+该配置文件用于定义等级组
+
+default_0:
+  # 起始值
+  min: 0
+  # 最大值
+  max: 100
+  # 经验算法
+  experience:
+    # 算法类型
+    # 可用: kether, javascript
+    type: kether
+    # 算法内容
+    math: |
+      case &level [
+        when <= 15 -> calc "level * 2 + 7"
+        when <= 30 -> calc "level * 5 - 38"
+        else calc "level * 9 - 158"
+      ]
+  # 等级提升奖励
+  reward:
+    5: tell colored inline *"&aLevel up! &f{{ &level }}!"
+    10-20: tell colored inline *"&eLevel up! &f{{ &level }}!"
+
+以下给出一个简易示例:
+
+制作等级:
+  # 起始值
+  min: 0
+  # 最大值
+  max: 3
+  # 经验算法
+  experience:
+    # 算法类型
+    # 可用: kether, javascript
+    type: kether
+    # 算法内容
+    math: |
+      case &level [
+        when == 1 -> 30
+        when == 2 -> 80
+        when == 3 -> 150
+        when == 4 -> 250
+        when == 5 -> 400
+        when == 6 -> 600
+        when == 7 -> 800
+        when == 8 -> 1000
+        when == 9 -> 1300
+        when == 10 -> 1800
+      ]
+  # 等级提升奖励
+  reward:
+    1-10: 'tell colored inline *"&f[&6!&f] &7制造等级提升! 当前制作等级为: &a{{ &level }}&7!"'
+该配置文件用于指定组队任务
+default:
+  # 支持插件
+  # 可用:
+  # BaiTeam, CustomGo, DungeonPlus, DungeonsXL, FriendsPremium, iTeamPro
+  # mcMMO, MMOCore, NyTeam, PxTeam, Parties, PartyAndFriends, QuantumRPG
+  plugin: none
+
+
+#         Powered by TabooLib 6.0         #
+
+
+default:
+  # 标题
+  name: '{name}''s Quests [Pg. {page}]'
+  # 设置
+  menu:
+    # 任务设置
+    quest:
+      # 行数
+      rows: 6
+      # 位置
+      slot: [
+          12, 13, 14, 15, 16,
+          21, 22, 23, 24, 25,
+          30, 31, 32, 33, 34,
+          39, 40, 41, 42, 43
+      ]
+      # 功能按键位置
+      methods:
+        info: 19
+        filter: 28
+    # 过滤器设置
+    filter:
+      # 行数
+      rows: 3
+      # 位置
+      slot: [ 10, 11, 12, 13, 14, 15, 16 ]
+  # 物品配置
+  item:
+    info:
+      material: totem
+      name: '&6&lQuests'
+      lore:
+        - ' '
+        - '&7 L1:'
+        - '&7 [ {{ ui bar def [ L1 ] }} &7] {{ ui percent [ L1 ] }}%'
+        - '&7 L2:'
+        - '&7 [ {{ ui bar def [ L2 ] }} &7] {{ ui percent [ L2 ] }}%'
+        - '&7 L3:'
+        - '&7 [ {{ ui bar def [ L3 ] }} &7] {{ ui percent [ L3 ] }}%'
+        - ' '
+        - '&8{{ ui percent [ L1 L2 L3 ] exclude [ S1 ] }}% total'
+      bar:
+        def:
+          empty: '&|'
+          fill: '|'
+          size: 35
+    filter:
+      material: name_tag
+      name: '&e&lFilter'
+      lore:
+        - '&8- &f{filter}'
+        - ' '
+        - '&8CLICK TO EDIT'
+      all-key: ALL
+    quest:
+      started:
+        material: orange_stained_glass_pane
+        name: '&6&l{name}'
+        lore:
+          - '&eStarted...'
+          - ' '
+          - '{description}'
+          - ' '
+          - '&8CLICK TO TRACK'
+        enchant:
+          LUCK: 1
+        flags:
+          - HIDE_ENCHANTS
+      started-shared:
+        material: purple_stained_glass_pane
+        name: '&d&l{name} &5(Shared)'
+        lore:
+          - '&eStarted...'
+          - ' '
+          - '{description}'
+          - ' '
+          - '&8CLICK TO TRACK'
+        enchant:
+          LUCK: 1
+        flags:
+          - HIDE_ENCHANTS
+      can-start:
+        material: lime_stained_glass_pane
+        name: '&a&l{name}'
+        lore:
+          - '&eCan start...'
+          - ' '
+          - '{description}'
+          - ' '
+          - '&8CLICK TO TRACK'
+      cannot-start:
+        material: red_stained_glass_pane
+        name: '&4&l{name}'
+        lore:
+          - '&cCannot started...'
+          - ' '
+          - '{description}'
+          - ' '
+          - '&8UNTRACKED'
+      completed:
+        material: black_stained_glass_pane
+        name: '&7&l{name}'
+        lore:
+          - '&8Completed!'
+          - ' '
+          - '{description}'
+          - ' '
+          - '&8UNTRACKED'
+      unavailable:
+        material: gray_stained_glass_pane
+        name: '&7'
+  # 包含任务
+  include:
+    L1:
+      active:
+        material: golden_sword
+        name: '&fL1 quests'
+        lore:
+          - '&a&lINCLUDED'
+      normal:
+        material: golden_sword
+        name: '&fL1 quests'
+        lore:
+          - '&7INCLUDE'
+    L2:
+      active:
+        material: iron_pickaxe
+        name: '&fL2 quests'
+        lore:
+          - '&a&lINCLUDED'
+        flags:
+          - HIDE_ATTRIBUTES
+      normal:
+        material: iron_pickaxe
+        name: '&fL2 quests'
+        lore:
+          - '&7INCLUDE'
+        flags:
+          - HIDE_ATTRIBUTES
+    L3:
+      active:
+        material: stone
+        name: '&fL3 quests'
+        lore:
+          - '&a&lINCLUDED'
+      normal:
+        material: stone
+        name: '&fL3 quests'
+        lore:
+          - '&7INCLUDE'
+  # 排除任务
+  exclude:
+    - S1
+ui 模块作为 Chemdah 的任务视图部分，其可通过任务类型及 ui 任务页面 的进行联动，从而完成对特定任务的进度展示。
+ui 模块从任务界面组出发，通过对 name(标题)、menu(布局)、item(物品)、include(包含选择器)、exclude(排除选择器) 的配置、编排，从而完成自定义任务视图的作用。
+Chemdah 作为单纯的服务端界面，是无法实现
+任务界面组
+任务界面组作为识别 任务页面 的标识符，需在全局中保持唯一，即具有唯一性，不可重复。
+建议使用任务类型或任务难易进行分类。
+name 标题
+name，即打开 任务页面 时，箱子菜单上展示的标题名。
+此处提供了两个变量，即 {name} 和 {page}，分别对应 玩家名称 和 页码。
+name 标题 展示
+
+
+图中框选区域，即为 name 标题 所展示的内容。
+menu 布局
+menu 本意为菜单，但此处的实际作用是为 item(物品)、include(包含选择器)、exclude(排除选择器) 在箱子菜单中的位置进行编排。
+quest 任务
+该处的 quest 任务，指的是即将显示在 任务页面 的槽位。
+rows 行数
+rows 用于配置箱子界面的行数。
+rows 行数 展示
+以下为行数为5的箱子菜单界面：
+
+
+以下为行数为6的箱子菜单界面：
+
+
+slot 槽位
+slot 用于指定任务的展示槽位及功能按键的槽位。
+如果你是 DeluxeMenus 或 TrMenu 的用户，或对二者有一定的了解，相信你对其中的 slot 图标槽位 一定不陌生。
+此处的 slot 选项起同样的作用，使用时根据排版需要合理安排槽位即可。
+注：此处的槽位从 0 开始，最大槽位为 (rows * 9) -1。
+slot 槽位 展示
+以下为行数为6的箱子菜单界面：
+
+
+methods 功能按键
+示例中提供了两个功能按键，分别是 信息 和 过滤器。
+info 信息
+用于提示玩家完成进度等，详见本篇后续内容。
+filter 过滤器
+点击后打开编写的过滤器，详见本篇后续内容。
+
+
+
+
+item 物品
+item 物品 包含了所有按钮的配置。
+info
+info 展示
+
+  # 物品配置
+  item:
+    info:
+      # 物品使用的材质类型
+      material: totem
+      # 物品的展示名称
+      name: '&6&lQuests'
+      # 物品的展示描述
+      lore:
+        - ' '
+        - '&7 L1:'
+        - '&7 [ {{ ui bar test [ L1 ] }} &7] {{ ui percent [ L1 ] }}%'
+        - '&7 L2:'
+        - '&7 [ {{ ui bar test [ L2 ] }} &7] {{ ui percent [ L2 ] }}%'
+        - '&7 L3:'
+        - '&7 [ {{ ui bar test [ L3 ] }} &7] {{ ui percent [ L3 ] }}%'
+        - ' '
+        - '&8{{ ui percent [ L1 L2 L3 ] exclude [ S1 ] }}% total'
+      # 用于 ui 语句构建进度条的组成符号
+      bar:
+        def:
+          empty: '&|'
+          fill: '|'
+          size: 35
+此处使用到了 Chemdah 提供的 私有动作语句
+展开 / 收起详情 UI 语句
+UI
+
+仅作用于 UI 模块的配置文件中，用于构建任务的完成进度。
+关于 UI 模块的帮助详见 Chemdah 文档。
+
+ui (percent|bar {token}) {token list} [exclude {token list}]
+
+ui bar def [ L3 ]
+ui percent [ L1 L2 L3 ] exclude [ S1 ]
+由 Chemdah 提供的私有动作
+详情请查阅本文档 Kether 部分。
+filter
+filter 展示
