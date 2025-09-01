@@ -42,26 +42,8 @@ public class ChatAiController
     @PostMapping()
 
 
-    @GetMapping("/api/openAiChat")
-    public String openAiChat(@RequestParam(value = "message",defaultValue = "minecraft 信标的合成配方是什么？")String message){
-        String content = chatClient.prompt().user(message).call().content();
-        return content;
 
-    }
-    @GetMapping("/api/openAiChatF")
-    public String openAiChatF(@RequestParam(value = "message",defaultValue = "minecraft 信标的合成配方是什么？")String message){
-//        OpenAiChatOptions getLocation = OpenAiChatOptions.builder().function("GetLocation")
-//                .build();
-//        Test test = new Test();
-//        String content = chatClient.prompt().user(message).functions(FunctionCallback.builder()
-//                .method("getWeather",String.class).description("获取当地的天气")
-//                .targetObject(test)
-//                .build()).call().content();
-//        return content;
-        String s = readFileContentFromClasspath();
-        System.out.println(s);
-        return s;
-    }
+
     @GetMapping("/api/openAiChatC")
     public String openAiChatC(@RequestParam(value = "message",defaultValue = "minecraft 信标的合成配方是什么？")String message){
 
@@ -74,13 +56,7 @@ public class ChatAiController
 
     }
 
-    @GetMapping("/api/openAiChatX")
-    public String openAiChatX(@RequestParam(value = "message",defaultValue = "minecraft 信标的合成配方是什么？")String message){
 
-        String response = chatClient.prompt().user(message).call().content();
-        return response;
-
-    }
 
     @GetMapping("/api/openAiChatWithRole")
     @CrossOrigin
@@ -97,9 +73,9 @@ public class ChatAiController
         return response;
 
     }
-    @GetMapping("/api/openAiChatWithRoleWithKnowledge")
+    @RequestMapping("/api/openAiChatWithNPCRole")
     @CrossOrigin
-    public String openAiChatWithRoleWithKnowledge(
+    public String openAiChatWithNPCRole(
             @RequestBody ChatRequestDTO request
 
     ){
@@ -111,6 +87,8 @@ public class ChatAiController
         return response;
 
     }
+
+    //打字机效果
     @RequestMapping(value = "/api/openAiChatWithRole", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @CrossOrigin
     public Flux<String> openAiChatWithRoleWithKnowledgeStream(@RequestBody ChatRequestDTO request) {
