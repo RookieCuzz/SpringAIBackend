@@ -20,8 +20,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY;
-import static org.springframework.ai.chat.client.advisor.AbstractChatMemoryAdvisor.CHAT_MEMORY_RETRIEVE_SIZE_KEY;
+import static org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY;
+import static org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor.CHAT_MEMORY_RETRIEVE_SIZE_KEY;
 
 @Service
 public class AiChatService {
@@ -33,22 +33,20 @@ public class AiChatService {
     VectorStore vectorStoreRedis;
 
 
-
-
     @Resource
     RoleService roleService;
     public RetrievalAugmentationAdvisor buildRetrievalAugmentationAdvisor(Set<String> knowledgeNames) {
         FilterExpressionBuilder expressionBuilder = new FilterExpressionBuilder();
 
         if (knowledgeNames.isEmpty()) {
-// 创建 DocumentRetriever 实例，使用向量存储进行检索
+        // 创建 DocumentRetriever 实例，使用向量存储进行检索
             DocumentRetriever documentRetriever = VectorStoreDocumentRetriever.builder()
                     .vectorStore(vectorStoreRedis) // 替换为您的 VectorStore 实例
                     .topK(1)
                     .similarityThreshold(0.99)
                     .build();
 
-// 构建 RetrievalAugmentationAdvisor
+    // 构建 RetrievalAugmentationAdvisor
             return  RetrievalAugmentationAdvisor.builder()
                     .documentRetriever(documentRetriever)
                     // 根据需要添加其他组件，如 queryTransformers、queryExpander 等

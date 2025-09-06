@@ -10,6 +10,13 @@ spring:
     name: springaidemo
   ai:
     openai:
+      api-key: sk-tUYWHdgOWNcmWQkJsbluKbDgJTV3BuNNhskvZnPZwmJNEG0D
+      base-url: https://chatapi.littlewheat.com
+      chat:
+        options:
+          model: deepseek-chat
+    #      api-key: sk-ODEEi8mL95HQdmN40uglPBpJ3axn9YbBZ3hVQMQTuVGhLEYZ
+    #      base-url: https://api.lkeap.cloud.tencent.com/v1
   
     vectorstore:
       redis:

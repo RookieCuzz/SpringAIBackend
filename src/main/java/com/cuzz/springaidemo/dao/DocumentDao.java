@@ -19,6 +19,7 @@ public class DocumentDao {
 
     public List<String> getAllDocumentName(){
         List<String> allDocumentName = documentDTOMapper.getAllDocumentName();
+        System.out.println("TEST");
         return allDocumentName;
     }
 
